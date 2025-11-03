@@ -1,0 +1,16 @@
+name = "LOTAC"
+version = "0.1.0"
+defaultTargets = ["lotac"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+version = "git#f897ebcf72cd16f89ab4577d0c826cd14afaafc7"
+
+[[lean_lib]]
+name = "LOTAC"
+
+[[lean_exe]]
+name = "lotac"
+root = "Main"
+
