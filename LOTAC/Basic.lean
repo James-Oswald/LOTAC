@@ -174,28 +174,31 @@ def L.tautology (A : @L Φ) : Prop :=
 -- Any tautology is a substitution instance of a propositional tautology
 example (A: @L Φ) (TA : A.tautology):
 ∃ (B : @L Φ), B.tautology ∧ B.propositional ∧ subst_inst B A := by
-  induction A with
-  | atom p =>
-    use .atom p
-    constructor
-    assumption
-    constructor
-    simp only [L.propositional, L.containsBox, decide_false, Bool.false_eq_true, not_false_eq_true,
-      decide_true]
-    simp only [subst_inst]
-    use []
-    simp only [msubst]
-  | bot =>
-    simp only [L.tautology, Lq, L.quasiAtomic, L.isAtomic, L.isBox, V, decide_false,
-      Bool.false_eq_true, forall_const] at TA
-  | imp A B ih1 ih2 =>
-    exists (A →ₜ B)
-    constructor
-    exact TA
-    constructor
-    sorry
-    sorry
-  | box A ih =>
+  let b := Sq A
+
+
+  -- induction A with
+  -- | atom p =>
+  --   use .atom p
+  --   constructor
+  --   assumption
+  --   constructor
+  --   simp only [L.propositional, L.containsBox, decide_false, Bool.false_eq_true, not_false_eq_true,
+  --     decide_true]
+  --   simp only [subst_inst]
+  --   use []
+  --   simp only [msubst]
+  -- | bot =>
+  --   simp only [L.tautology, Lq, L.quasiAtomic, L.isAtomic, L.isBox, V, decide_false,
+  --     Bool.false_eq_true, forall_const] at TA
+  -- | imp A B ih1 ih2 =>
+  --   exists (A →ₜ B)
+  --   constructor
+  --   exact TA
+  --   constructor
+  --   sorry
+  --   sorry
+  -- | box A ih =>
 
 
 
