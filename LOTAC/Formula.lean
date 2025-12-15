@@ -2,6 +2,7 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Image
 import Mathlib.Data.Fintype.Basic
+import Mathlib.Data.Fintype.Pi
 
 variable {Φ : Type} [BEq Φ] [DecidableEq Φ]
 
@@ -49,6 +50,19 @@ def S : @L Φ -> Finset (@L Φ)
 | ⊥ₜ => {⊥ₜ}
 | A→ₜB => {A→ₜB} ∪ S A ∪ S B
 | □ₜA => {□ₜA} ∪ S A
+
+-- All formulae are subformulae of themselves
+theorem A_mem_S_A {A : @L Φ} : A ∈ S A := by
+  induction A <;> aesop
+
+-- Subformula membership is transitive
+theorem mem_S_trans {A B C : @L Φ} : A ∈ S B ∧ B ∈ S C → A ∈ S C := by
+  intro ⟨H1, H2⟩
+  induction B <;> induction C <;> simp_all only [S] <;> grind
+
+-- If A -> B is a subformula of C, then so are A and B
+theorem mem_imp_mem {A B C: @L Φ} : (A →ₜ B) ∈ S C → A ∈ S C ∧ B ∈ S C := by
+  induction C <;> simp_all only [S] <;> try grind [A_mem_S_A]
 
 -- Single substitution, replaces an atom p in A with B
 @[simp]
@@ -107,6 +121,9 @@ abbrev Lq : Type := {A : @L Φ // A.quasiAtomic}
 -- The type of quasi-atomic subformulae of A
 def Sq (A : @L Φ) : Type := {B : @L Φ // B.quasiAtomic ∧ B ∈ S A}
 
+instance (A : @L Φ) : DecidableEq (Sq A) := by
+  apply Subtype.instDecidableEq
+
 -- Sq A is finite
 instance (A : @L Φ) : Fintype (Sq A) := by
   apply Fintype.ofFinset ((S A).filter (·.quasiAtomic))
@@ -114,20 +131,22 @@ instance (A : @L Φ) : Fintype (Sq A) := by
   simp only [Finset.mem_filter, Set.instMembership, Set.Mem]
   grind
 
--- -- Subvaluation on quasi-atomic formulae
--- def Sv {A : @L Φ} (v : Sq A -> Bool) (B : @L Φ) : Sq B -> Bool :=
---   if h : B ∈ S A then
---   else
---     λ _ => False
+-- The type of valuations over Sq A is finite
+instance (A : @L Φ) : Fintype (Sq A -> Bool) := by
+  apply Pi.instFintype
 
--- Extension of a valuation on quasi-atomic formulae to all formulae
-def V (f : @L Φ) (v : Sq f -> Bool) : Bool :=
-match f with
-| .atom p => v ⟨.atom p, by simp⟩
+-- Subvaluation of the formula f1 at subformula f2
+def V_aux (f1 f2: @L Φ) (v : Sq f1 -> Bool) (H : f2 ∈ S f1): Bool :=
+match H2: f2 with
+| .atom p => v ⟨.atom p, by simpa⟩
 | ⊥ₜ => False
-| A →ₜ B => (V A (Sv v )) → (V B (Sv v B))
-| □ₜ A => v ⟨□ₜ A, by simp⟩
+| A →ₜ B => (V_aux f1 A v (mem_imp_mem H).left) ∧ (V_aux f1 B v (mem_imp_mem H).right)
+| □ₜ A => v ⟨□ₜ A, by simpa⟩
+
+-- Valuation of a formula f1 with a function over its
+def V (f1 : @L Φ) (v : Sq f1 -> Bool) : Bool :=
+  V_aux f1 f1 v (A_mem_S_A)
 
 -- A formula is a tautology iff V v A holds for all quasi-atomic valuations v
-def L.tautology (A : @L Φ) : Prop :=
-  ∀ (v : @Lq Φ -> Bool), V v A
+def L.tautology (A : @L Φ) : Bool :=
+  ∀ (v : Sq A -> Bool), V A v
