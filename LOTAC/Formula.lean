@@ -11,7 +11,7 @@ inductive L where
 | bot : L
 | imp : L → L → L
 | box : L → L
-deriving DecidableEq
+deriving DecidableEq, BEq
 
 notation "⊥ₜ" => L.bot
 infixr:30 " →ₜ " => L.imp
@@ -41,6 +41,11 @@ infix:20 "↔ₜ" => L.iff
 def L.dia (A : L) : L := ¬ₜ□ₜ¬ₜA
 prefix:max " ◇ₜ" => L.dia
 
+@[simp]
+theorem a_neq_box_a : A ≠ □ₜA := by
+  induction A <;> simp_all
+
+
 -- Subformulae of a formula
 @[simp]
 def S : L -> Finset (L)
@@ -48,6 +53,11 @@ def S : L -> Finset (L)
 | ⊥ₜ => {⊥ₜ}
 | A→ₜB => {A→ₜB} ∪ S A ∪ S B
 | □ₜA => {□ₜA} ∪ S A
+
+-- Named atoms for schemas
+@[simp] abbrev A1 : L := L.atom 1
+@[simp] abbrev A2 : L := L.atom 2
+@[simp] abbrev A3 : L := L.atom 3
 
 -- All formulae are subformulae of themselves
 theorem A_mem_S_A {A : L} : A ∈ S A := by
@@ -71,11 +81,28 @@ def subst (A B : L) (p : Nat) : L :=
   | A1 →ₜ A2 => (subst A1 B p) →ₜ (subst A2 B p)
   | □ₜ A1 => □ₜ(subst A1 B p)
 
+-- Single substitution, replaces an C in A with B
+-- @[simp]
+-- def subst_f (A B C: L) : L :=
+--   if A = C then
+--     B
+--   else
+--     match A with
+--     | .atom q => .atom q
+--     | ⊥ₜ => ⊥ₜ
+--     | A1 →ₜ A2 => (subst_f A1 B C) →ₜ (subst_f A2 B C)
+--     | □ₜ A1 => □ₜ(subst_f A1 B C)
+
 -- Multiple substitution
 @[simp]
 def msubst (A : L) : List (Nat × L) -> L
 | [] => A
 | (p, B) :: t => msubst (subst A B p) t
+
+-- @[simp]
+-- def msubst_f (A : L) : List (L × L) -> L
+-- | [] => A
+-- | (f, t) :: ts => msubst_f (subst_f A t f) ts
 
 -- A' is a substitution instance of A
 -- iff there exists a list of substitutions that when applied to A yield A'
@@ -83,9 +110,18 @@ def msubst (A : L) : List (Nat × L) -> L
 def subst_inst (A A' : L) : Prop :=
   ∃ l : List (Nat × L), msubst A l = A'
 
+-- @[simp]
+-- def subst_inst (A A' : L) : Prop :=
+--   ∃ l : List (L × L), msubst_f A l = A'
+
 -- A schema is a set of all substitution instances of a formula A
+@[simp]
 def Schema (A : L) : Set (L) :=
   { A' | subst_inst A A' }
+
+theorem A_in_Schema_A : A ∈ Schema A := by
+  use []
+  simp
 
 -- Valuations and Tautologies
 
