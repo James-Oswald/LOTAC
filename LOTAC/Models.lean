@@ -324,3 +324,59 @@ example (m : M) :
 -- The frame with no worlds and no accessible worlds
 example : ⟨Fin 0, λ _ _ => False⟩ ⊨ (□ₜ⊥ₜ : L) := by
   aesop
+
+
+-- 1.4 (5)
+-- Show that in any model M
+-- (i) if A is a tautology, then M ⊨ₘ A
+-- (ii) if  M ⊨ₘ A and M ⊨ₘ A →ₜ B, then M ⊨ₘ B
+-- (iii) if M ⊨ₘ A then M ⊨ₘ □ₜA
+
+set_option pp.proofs true
+
+theorem tautology_implies_model_true :
+A.tautology → (m ⊨ₘ A) := by
+  induction A
+  · case atom a =>
+    intro H
+    simp [L.tautology] at H
+    have H2 := H (λ _ => False)
+    simp at H2
+  . case bot => simp [L.tautology]
+  . case imp a1 a2 ih1 ih2 =>
+    intro H
+    simp at H
+    sorry
+  . case box a1 ih =>
+    intro H
+    simp_all
+    have H2 := H (λ _ => False)
+    simp at H2
+
+theorem model_true_implies_model_imp_true :
+(m ⊨ₘ A) → (m ⊨ₘ (A →ₜ B)) → (m ⊨ₘ B) := by
+  intro H H1 s
+  apply H1 s
+  exact H s
+
+theorem model_true_imp_model_box_true :
+(m ⊨ₘ A) → (m ⊨ₘ □ₜA) := by
+  intro H s t sRt
+  exact H t
+
+-- 1.4 (5)
+-- The above three theorems can be done for any frame F rather than a model M
+
+theorem tautology_implies_frame_valid :
+A.tautology → (f ⊨ A) := by
+  sorry
+
+theorem frame_valid_implies_frame_imp_valid :
+(f ⊨ A) → (f ⊨ (A →ₜ B)) → (f ⊨ B) := by
+  intro a a_1
+  simp_all only [F.valid, M.true, holds, forall_const, implies_true]
+
+theorem frame_valid_imp_frame_box_valid :
+(f ⊨ A) → (f ⊨ □ₜA) := by
+  intro a
+  simp_all only [F.valid, M.true, holds, implies_true]
