@@ -11,7 +11,29 @@ inductive L where
 | bot : L
 | imp : L → L → L
 | box : L → L
-deriving DecidableEq, BEq
+deriving DecidableEq, BEq, Inhabited
+
+-- instance: LawfulBEq L where
+--   eq_of_beq := by
+--     intros a b H
+--     induction a <;>
+--     induction b <;>
+--     simp only [BEq.beq] at H <;>
+--     try contradiction
+--     · case atom.atom a1 a2 =>
+--       rw [instBEqL.beq] at H
+--       simp
+--       rw [<-Nat.beq_eq_true_eq]
+--       exact H
+--     · case bot.bot => rfl
+--     · case imp.imp a1 a2 b1 b2 => --ih1 ih2 ih3 ih4 =>
+--       rw [instBEqL.beq] at H
+--       simp_all
+--       sorry
+--     . case box.box a1 b1 ih1 ih2 =>
+--       rw [instBEqL.beq] at *
+--       simp_all
+
 
 notation "⊥ₜ" => L.bot
 infixr:30 " →ₜ " => L.imp
@@ -205,6 +227,7 @@ def V (f1 : L) (v : Sq f1 -> Bool) : Bool :=
 @[simp]
 def L.tautology (A : L) : Bool :=
   ∀ (v : Sq A -> Bool), V A v
+
 
 -- def fresh_atom (A : L) : Φ :=
 --   let used := S A |>.filter (·.isAtomic)

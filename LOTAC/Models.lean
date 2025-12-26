@@ -325,7 +325,6 @@ example (m : M) :
 example : ⟨Fin 0, λ _ _ => False⟩ ⊨ (□ₜ⊥ₜ : L) := by
   aesop
 
-
 -- 1.4 (5)
 -- Show that in any model M
 -- (i) if A is a tautology, then M ⊨ₘ A
