@@ -74,6 +74,25 @@ theorem meta_contrapose_iff :
 
 -- Foldr Theorems =============================================================
 
+theorem Theorem.weaken_list {Γ : List L} :
+(⊢[Λ] A) → ⊢[Λ] (Γ ⋯→ₜ A) := by
+  intro H
+  induction Γ
+  . case nil => simp_all only [List.foldr_nil]
+  . case cons h t ih =>
+    simp_all
+    apply Theorem.weaken
+    exact ih
+
+theorem Theorem.weaken_middle
+(H: ⊢[Λ] B →ₜ A) : ⊢[Λ] B →ₜ Γ ⋯→ₜ A := by
+  induction Γ
+  . case nil => simp_all only [List.foldr_nil]
+  . case cons h t ih =>
+    simp_all
+    apply Theorem.swap_antecedent
+    exact ih.weaken
+
 theorem Theorem.cons {B : L} {Γ1 : List L} :
 (⊢[Λ] (Γ1 ⋯→ₜ A)) → ⊢[Λ] ((B :: Γ1) ⋯→ₜ A) :=
   weaken
@@ -85,14 +104,61 @@ theorem Theorem.append_antes {Γ1 Γ2 : List L} :
   · case nil.cons h t ih => exact ih.weaken
   · case cons.cons h t ih => exact ih.weaken
 
--- theorem Theorem.append_antes' {Γ1 Γ2 : List L} :
---   (⊢[Λ] Γ1 ⋯→ₜ A) → ⊢[Λ] (Γ1 ++ Γ2) ⋯→ₜ A := by
---   intro H
---   induction Γ2 <;> induction Γ1 <;> simp_all
---   . case cons.nil h t ih =>
---     exact Λ.weaken  ih
---   . case cons.cons h1 t1 h2 t2 ih1 ih2 =>
---     simp at ih1
+theorem Theorem.position_irrelevant
+(H : ⊢[Λ] B →ₜ A) (H2: B ∈ Γ) : ⊢[Λ] Γ ⋯→ₜ A := by
+  induction Γ
+  . case nil =>
+    simp only [List.not_mem_nil] at H2
+  . case cons h t ih =>
+    simp_all
+    cases H2
+    . case inl H3 =>
+      rw [<-H3]
+      exact H.weaken_middle
+    . case inr H3 =>
+      exact (ih H3).weaken
+
+theorem Theorem.weaken_arbitrary
+(H1 : ⊢[Λ] Γ1 ⋯→ₜ A) : ∃ Γ2, (∀ B ∈ Γ1, B ∈ Γ2) ∧ ⊢[Λ] Γ2 ⋯→ₜ A := by
+  grind
+
+theorem Theorem.foldr_weaken
+(H1 : ⊢[Λ] Γ1 ⋯→ₜ A) (H2 : Γ1 ⊆ Γ2) : ⊢[Λ] Γ2 ⋯→ₜ A := by
+  let Γ3 : List L := Γ2.filter (fun x => !Γ1.contains x)
+  have H3 : ∀x ∈ Γ2, x ∈ Γ1 ++ Γ3 := by
+    intro x a
+    simp_all only [List.mem_append, List.mem_filter, Bool.not_eq_eq_eq_not, Bool.not_true, true_and, Γ3]
+    rw [<-List.contains_iff_mem]
+    have H4 := Classical.em (Γ1.contains x)
+    simp_all only [Bool.not_eq_true, Bool.eq_true_or_eq_false_self]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+theorem Theorem.append_antes' {Γ1 Γ2 : List L} :
+(⊢[Λ] Γ1 ⋯→ₜ A) → ⊢[Λ] (Γ1 ++ Γ2) ⋯→ₜ A := by
+  intro H
+  have H2 := @Theorem.append_antes _ _ Γ1 Γ2 H
+
+
 
 
 
@@ -104,15 +170,19 @@ theorem Theorem.assumption : ⊢[Λ] A :: Γ1 ⋯→ₜ A := by
     apply Theorem.swap_antecedent
     apply ih.weaken
 
-theorem Theorem.foldr_swap {Γ1 Γ2 : List L} :
-  (⊢[Λ] (Γ1 ⋯→ₜ Γ2 ⋯→ₜ A)) → ⊢[Λ] (Γ2 ⋯→ₜ Γ1 ⋯→ₜ A) := by
-  sorry
-  --sorry
-  -- intro H
-  -- induction Γ2 <;> induction Γ1 <;> simp_all
-  -- . case cons.cons h1 t1 h2 t2 ih1 ih2 =>
 
-  --   suffices ⊢[Λ] t1 ⋯→ₜ h2 →ₜ t2 ⋯→ₜ A by apply Λ.weaken  this
+
+-- theorem Theorem.foldr_swap {Γ1 Γ2 : List L} :
+--   (⊢[Λ] (Γ1 ⋯→ₜ Γ2 ⋯→ₜ A)) → ⊢[Λ] (Γ2 ⋯→ₜ Γ1 ⋯→ₜ A) := by
+--   sorry
+--   sorry
+--   intro H
+--   induction Γ2 <;> induction Γ1 <;> simp_all
+--   . case cons.cons h1 t1 h2 t2 ih1 ih2 =>
+--     intro H
+--     apply Theorem.if_intro
+
+--     suffices ⊢[Λ] t1 ⋯→ₜ h2 →ₜ t2 ⋯→ₜ A by apply Λ.weaken  this
 
 
 

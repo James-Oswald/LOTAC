@@ -13,26 +13,73 @@ inductive L where
 | box : L → L
 deriving DecidableEq, BEq, Inhabited
 
+instance: ReflBEq L where
+  rfl := by
+    intro a
+    induction a <;> simp_all only [BEq.beq, instBEqL.beq] <;> grind only
+
+instance: LawfulBEq L where
+  eq_of_beq := by
+    intros a b H
+    simp only [BEq.beq] at H
+    induction a generalizing b
+    . case atom n =>
+      cases b <;>
+      try contradiction
+      rw [instBEqL.beq] at H
+      simp
+      rw [<-Nat.beq_eq_true_eq]
+      exact H
+    . case bot =>
+      cases b <;>
+      try contradiction
+      rfl
+    . case imp f1 f2 ih1 ih2 =>
+      cases b <;>
+      try contradiction
+      simp
+      rw [instBEqL.beq] at H
+      constructor
+      . case imp.left =>
+        apply ih1
+        simp_all only [Bool.and_eq_true]
+      . case imp.right =>
+        apply ih2
+        simp_all only [Bool.and_eq_true]
+    . case box f1 ih1 =>
+      cases b <;>
+      try contradiction
+      simp
+      rw [instBEqL.beq] at H
+      apply ih1
+      simp_all only
+
+
 -- instance: LawfulBEq L where
 --   eq_of_beq := by
 --     intros a b H
---     induction a <;>
+--     induction a generalizing b <;>
 --     induction b <;>
---     simp only [BEq.beq] at H <;>
 --     try contradiction
 --     · case atom.atom a1 a2 =>
+--       simp only [BEq.beq] at H
 --       rw [instBEqL.beq] at H
 --       simp
 --       rw [<-Nat.beq_eq_true_eq]
 --       exact H
 --     · case bot.bot => rfl
 --     · case imp.imp a1 a2 b1 b2 => --ih1 ih2 ih3 ih4 =>
+--       simp only [BEq.beq] at H
 --       rw [instBEqL.beq] at H
 --       simp_all
 --       sorry
---     . case box.box a1 b1 ih1 ih2 =>
---       rw [instBEqL.beq] at *
+--     . case box.box f1 ih1 f2 ih2 =>
+--       rw [instBEqL.beq] at H
 --       simp_all
+
+
+
+
 
 
 notation "⊥ₜ" => L.bot
