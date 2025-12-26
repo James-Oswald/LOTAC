@@ -74,6 +74,7 @@ theorem meta_contrapose_iff :
 
 -- Foldr Theorems =============================================================
 
+
 theorem Theorem.weaken_list {Γ : List L} :
 (⊢[Λ] A) → ⊢[Λ] (Γ ⋯→ₜ A) := by
   intro H
@@ -83,6 +84,17 @@ theorem Theorem.weaken_list {Γ : List L} :
     simp_all
     apply Theorem.weaken
     exact ih
+
+theorem Theorem.weaken_list_right:
+(⊢[Λ] Γ ⋯→ₜ A) → ⊢[Λ] Γ ⋯→ₜ B →ₜ A := by
+  intro H
+  induction Γ
+  . case nil => simp_all; exact Theorem.weaken H
+  . case cons h t ih =>
+    simp_all
+    apply Theorem.weaken
+    exact ih
+
 
 theorem Theorem.weaken_middle
 (H: ⊢[Λ] B →ₜ A) : ⊢[Λ] B →ₜ Γ ⋯→ₜ A := by
@@ -118,6 +130,31 @@ theorem Theorem.position_irrelevant
     . case inr H3 =>
       exact (ih H3).weaken
 
+theorem Theorem.deduction {Γ1 : List L} :
+(⊢[Λ] (A :: Γ1) ⋯→ₜ B) ↔ (⊢[Λ] Γ1 ⋯→ₜ (A →ₜ B)) := by
+  apply Iff.intro
+  . case mp =>
+    intro H
+    induction Γ1
+    . case nil =>
+      simp_all only [List.foldr_cons, List.foldr_nil]
+    . case cons h t ih =>
+      simp_all
+      apply
+
+
+
+theorem Theorem.perm
+(H: ⊢[Λ] (Γ1 ⋯→ₜ A)) (H2: List.Perm Γ1 Γ2) : ⊢[Λ] (Γ2 ⋯→ₜ A) := by
+  induction H2
+  . case nil => exact H
+  . case cons h1 t1 t2 P ih =>
+    simp_all
+    sorry
+  -- . case refl => exact H
+  -- . case symm h => exact Theorem.perm H h.sym
+
+
 theorem Theorem.weaken_arbitrary
 (H1 : ⊢[Λ] Γ1 ⋯→ₜ A) : ∃ Γ2, (∀ B ∈ Γ1, B ∈ Γ2) ∧ ⊢[Λ] Γ2 ⋯→ₜ A := by
   grind
@@ -125,12 +162,27 @@ theorem Theorem.weaken_arbitrary
 theorem Theorem.foldr_weaken
 (H1 : ⊢[Λ] Γ1 ⋯→ₜ A) (H2 : Γ1 ⊆ Γ2) : ⊢[Λ] Γ2 ⋯→ₜ A := by
   let Γ3 : List L := Γ2.filter (fun x => !Γ1.contains x)
-  have H3 : ∀x ∈ Γ2, x ∈ Γ1 ++ Γ3 := by
+  have H3 : ∀x ∈ Γ2, x ∈ Γ3 ++ Γ1 := by
     intro x a
-    simp_all only [List.mem_append, List.mem_filter, Bool.not_eq_eq_eq_not, Bool.not_true, true_and, Γ3]
+    simp_all only [List.contains_eq_mem, List.mem_append, List.mem_filter, Bool.not_eq_eq_eq_not, Bool.not_true,
+      decide_eq_false_iff_not, true_and, Γ3]
     rw [<-List.contains_iff_mem]
     have H4 := Classical.em (Γ1.contains x)
-    simp_all only [Bool.not_eq_true, Bool.eq_true_or_eq_false_self]
+    grind only
+  have H4 : Γ2 ⊆ Γ3 ++ Γ1 := by
+    intro x H5
+    exact H3 x H5
+  have H5 : Γ3 ++ Γ1 ⊆ Γ2 := by
+    aesop
+  have H6 : ⊢[Λ] (Γ3 ++ Γ1) ⋯→ₜ A := by
+    exact Theorem.append_antes H1
+  induction Γ2 generalizing Γ1
+  . case nil =>
+    simp_all
+  . case cons h t ih =>
+    simp_all [List.subset_def]
+
+
 
 
 
