@@ -1,4 +1,7 @@
 {
+    "editor.rulers": [
+        80
+    ],
     "cSpell.words": [
         "Finset",
         "infixl",

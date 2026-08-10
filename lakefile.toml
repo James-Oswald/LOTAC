@@ -1,16 +1,37 @@
 name = "LOTAC"
 version = "0.1.0"
-defaultTargets = ["lotac"]
+defaultTargets = ["lotac", "textbook", "LOTAC2"]
+
+[leanOptions]
+verso.code.warnLineLength = 80
 
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-version = "git#f897ebcf72cd16f89ab4577d0c826cd14afaafc7"
+version = "git#v4.33.0"
+
+[[require]]
+name = "verso"
+git = "https://github.com/leanprover/verso.git"
+rev = "v4.33.0"
 
 [[lean_lib]]
 name = "LOTAC"
+
+[[lean_lib]]
+name = "LOTAC2"
+
+[[lean_lib]]
+name = "Textbook"
 
 [[lean_exe]]
 name = "lotac"
 root = "Main"
 
+[[lean_exe]]
+name = "textbook"
+root = "TextbookMain"
+
+[[lean_exe]]
+name = "lotac2_textbook"
+root = "LOTAC2TextbookMain"
