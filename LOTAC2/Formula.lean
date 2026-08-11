@@ -42,21 +42,27 @@ prefix:max " □ₜ" => L.box
 ```
 We define the remaining connectives in terms of the primitive ones.
 ```lean
+@[simp]
 def L.not {Φ : Type} (A : L Φ) : L Φ := A →ₜ ⊥ₜ
 prefix:max " ¬ₜ" => L.not
 
+@[simp]
 def L.top {Φ : Type} : L Φ := ¬ₜ⊥ₜ
 notation "⊤ₜ" => L.top
 
+@[simp]
 def L.and {Φ : Type} (A B : L Φ) : L Φ := ¬ₜ(A →ₜ ¬ₜB)
 infixr:35 " ∧ₜ " => L.and
 
+@[simp]
 def L.or {Φ : Type} (A B : L Φ) : L Φ := ¬ₜ(¬ₜA ∧ₜ ¬ₜB)
 infixr:30 "∨ₜ " => L.or
 
+@[simp]
 def L.iff {Φ : Type} (A B : L Φ) : L Φ := (A →ₜ B) ∧ₜ (B →ₜ A)
 infixr:25 " ↔ₜ " => L.iff
 
+@[simp]
 def L.dia {Φ : Type} (A : L Φ) : L Φ := ¬ₜ□ₜ¬ₜA
 prefix:max "◇ₜ" => L.dia
 ```
@@ -193,6 +199,11 @@ of $`A`, denoted by $`\operatorname{Schema}(A)`.
 ```lean
 def L.schema {Φ : Type} [DecidableEq Φ] (A : L Φ) : Set (L Φ) :=
   {A' | L.isSubstInstance A' A}
+```
+In lean we denote a schema with the notation "\[A\]ₛ" where
+$`A` is the formula that generates the schema.
+```lean
+notation "[" A "]ₛ" => L.schema A
 ```
 :::
 
@@ -390,7 +401,7 @@ We thus have membership in a schema is decidable, since $`A'` is a
 substitution instance of $`A` if and only if the matcher succeeds.
 ```lean
 instance {Φ : Type} [DecidableEq Φ] (A' A : L Φ) :
-    Decidable (A' ∈ L.schema A) := by
+    Decidable (A' ∈ [A]ₛ) := by
   change Decidable (L.isSubstInstance A' A)
   infer_instance
 ```
@@ -399,12 +410,12 @@ instance {Φ : Type} [DecidableEq Φ] (A' A : L Φ) :
 For example, the formula $`□(p → q)` is a substitution instance of the schema
 $`□(A → B)` by substituting $`p` for $`A` and $`q` for $`B`.
 ```leanEval
-#eval (□ₜ("p" →ₜ "q") ∈ L.schema (□ₜ("A" →ₜ "B")))
+#eval (□ₜ("p" →ₜ "q") ∈ [□ₜ("A" →ₜ "B")]ₛ)
 ```
-A more complex example is that the formula $`□(p → (q ∧ r)) ∧ □(p → ¬(q ∧ r))` is a
-substitution instance of the schema $`□(A → B) ∧ □(A → ¬B)` by substituting
-$`p` for $`A` and $`q ∧ r` for $`B`.
+A more complex example is that the formula $`□(p → (q ∧ r)) ∧ □(p → ¬(q ∧ r))`
+is a substitution instance of the schema $`□(A → B) ∧ □(A → ¬B)` by
+substituting $`p` for $`A` and $`q ∧ r` for $`B`.
 ```leanEval
 #eval ((□ₜ("p" →ₜ ("q" ∧ₜ "r")) ∧ₜ □ₜ("p" →ₜ ¬ₜ("q" ∧ₜ "r")))
-  ∈ L.schema (□ₜ("A" →ₜ "B") ∧ₜ □ₜ("A" →ₜ ¬ₜ"B")))
+  ∈ [□ₜ("A" →ₜ "B") ∧ₜ □ₜ("A" →ₜ ¬ₜ"B")]ₛ)
 ```
