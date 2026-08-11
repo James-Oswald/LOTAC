@@ -10,7 +10,6 @@ open Textbook
 
 #doc (Manual) "Frames and Models" =>
 
-# Frames and Models, Truth and Validity
 :::definition "Frames and Models"
 
 A frame is a pair $`(S, R)` where `S` is a non-empty set of worlds and $R$ is
@@ -245,5 +244,176 @@ theorem L.subst_boxFree_tautology
       exact h1 (fun A _ _ => V (.atom (name A)))
     · intro A hqa hA hA'
       simp only [V, dif_pos hqa, dif_pos hA]
+```
+:::
+
+
+:::definition "Truth and Validity"
+A formula φ is true in a model M if it is satisfied at every world in M.
+$$`M ⊨ φ ↔ ∀ w ∈ M.S, M, w ⊨ φ`
+
+```lean
+@[simp]
+def L.true_in_model (φ : L Φ) (M : @Model Φ) : Prop :=
+  ∀ w : M.S, M ⊨[w] φ
+notation  M " ⊨ " φ => L.true_in_model φ M
+```
+
+A formula φ is valid in a frame F if it is true in every model based on F.
+$$`F ⊨ φ ↔ ∀ M, M.toFrame = F → M ⊨ φ`
+```lean
+@[simp]
+def L.valid_in_frame (φ : L Φ) (F : Frame) : Prop :=
+  ∀ M : @Model Φ, M.toFrame = F → M ⊨ φ
+notation  F " ⊨ " φ => L.valid_in_frame φ F
+
+```
+
+A formula φ is valid in a class of frames C if it is valid in every frame in C.
+$$`C ⊨ φ ↔ ∀ F ∈ C, F ⊨ φ`
+In lean we will reprsent a class as a set of frames.
+```lean
+@[simp]
+def L.valid_in_class (φ : L Φ) (C : Set Frame) : Prop :=
+  ∀ F : Frame, F ∈ C → F ⊨ φ
+notation  C " ⊨ " φ => L.valid_in_class φ C
+```
+
+We say a formula is valid if it is true in all models,
+or equivalently, valid in the class of all frames.
+```lean
+@[simp]
+def L.valid (φ : L Φ) : Prop :=
+  ∀ M : @Model Φ, M ⊨ φ
+prefix:max "⊨" => L.valid
+
+theorem L.valid_iff_valid_in_class (φ : L Φ) :
+(⊨ φ) ↔ Set.univ ⊨ φ := by
+  simp only [L.valid, L.valid_in_class, Set.mem_univ]
+
+```
+
+
+We have analgous definitions for truth and validity over schema.
+IE a schema is true in a model if every instance of the schema is
+true in the model.
+
+```lean
+@[simp]
+def Schema.true (Γ : Set (L Φ)) (M : @Model Φ) : Prop :=
+  ∀ φ ∈ Γ, M ⊨ φ
+notation  M " ⊨ " Γ => Schema.true Γ M
+
+@[simp]
+def Schema.false (Γ : Set (L Φ)) (M : @Model Φ) : Prop :=
+  ¬(M ⊨ Γ)
+notation  M " ⊭ " Γ => Schema.false Γ M
+
+@[simp]
+def Schema.valid (Γ : Set (L Φ)) (F : Frame) : Prop :=
+  ∀ M : @Model Φ, M.toFrame = F → M ⊨ Γ
+notation  F " ⊨ " Γ => Schema.valid Γ F
+
+@[simp]
+def Schema.validInClass (Γ : Set (L Φ)) (C : Set Frame) : Prop :=
+  ∀ F : Frame, F ∈ C → F ⊨ Γ
+notation  C " ⊨ " Γ => Schema.validInClass Γ C
+```
+:::
+
+It is useful to also define the negation of truth and validity using the
+$`⊭` notation.
+:::details "Negations"
+```
+@[simp]
+def L.false_in_model (φ : L Φ) (M : @Model Φ) : Prop :=
+  ¬(M ⊨ φ)
+notation  M " ⊭ " φ => L.false_in_model φ M
+
+@[simp]
+def L.not_valid_in_frame (φ : L Φ) (F : Frame) : Prop :=
+  ¬(F ⊨ φ)
+notation  F " ⊭ " φ => L.not_valid_in_frame φ F
+
+@[simp]
+def L.not_validInClass (φ : L Φ) (C : Set Frame) : Prop :=
+  ¬(C ⊨ φ)
+notation  C " ⊭ " φ => L.not_validInClass φ C
+```
+:::
+
+
+*Exercises*
+
+1) Show that the following are true in all models,
+   hence valid in all frames.
+* $`□⊤`
+* $`□(φ → ψ) → (□φ → □ψ)`
+* $`◇(φ → ψ) → (□φ → ◇ψ)`
+* $`□(φ → ψ) → (◇φ → ◇ψ)`
+* $`□(φ ∧ ψ) ↔ (□φ ∧ □ψ)`
+* $`◇(φ ∨ ψ) ↔ (◇φ ∨ ◇ψ)`
+
+:::details "Solutions"
+```lean
+example (M : @Model Φ) : M ⊨ □ₜ⊤ₜ := by
+  simp_all only [L.true, Model.satisfies, L.top, L.not, implies_true]
+
+example (M : @Model Φ) (φ ψ : L Φ) : M ⊨ (□ₜ(φ →ₜ ψ) →ₜ (□ₜφ →ₜ □ₜψ)) := by
+  simp_all only [L.true, Model.satisfies, implies_true]
+
+example (M : @Model Φ) (φ ψ : L Φ) : M ⊨ (◇ₜ(φ →ₜ ψ) →ₜ (□ₜφ →ₜ ◇ₜψ)) := by
+  simp_all only [L.true, Model.satisfies, L.dia, L.not,
+    imp_false, Classical.not_imp, not_forall, not_and,
+    not_not, forall_exists_index, and_imp]
+  intro w x a a_1 a_2
+  simp_all only [forall_const]
+  apply Exists.intro
+  · apply And.intro
+    on_goal 2 => { exact a_1 }
+    · simp_all only
+
+example (M : @Model Φ) (φ ψ : L Φ) : M ⊨ (□ₜ(φ →ₜ ψ) →ₜ (◇ₜφ →ₜ ◇ₜψ)) := by
+  simp_all
+  intro w a x a_1 a_2
+  apply Exists.intro
+  · apply And.intro
+    · exact a_1
+    · simp_all only
+
+example (M : @Model Φ) (φ ψ : L Φ) : M ⊨ (□ₜ(φ ∧ₜ ψ) ↔ₜ (□ₜφ ∧ₜ □ₜψ)) := by
+  simp_all only [L.true, L.iff, L.and, L.not, Model.satisfies,
+    imp_false, Classical.not_imp, not_not, implies_true,
+    not_true_eq_false, not_forall, not_exists, not_and]
+
+example (M : @Model Φ) (φ ψ : L Φ) : M ⊨ (◇ₜ(φ ∨ₜ ψ) ↔ₜ (◇ₜφ ∨ₜ ◇ₜψ)) := by
+  simp only [L.true, Model.satisfies_iff]
+  intro w
+  apply Iff.intro
+  · case mp =>
+    intro a
+    have ⟨w', h1, h2⟩ := (M.satisfies_dia w (φ ∨ₜ ψ)).mp a
+    simp_all only [Model.satisfies_or]
+    aesop
+  · case mpr =>
+    intro a
+    simp_all only [Model.satisfies_or]
+    aesop
+```
+:::
+
+2) Show that the following do not hold in all frames by providing a countermodel.
+* $`□φ → φ`
+* $`□(φ → ψ) → (□φ → □ψ)`
+* $`◇⊤`
+* $`◇φ → □φ`
+* $`□(□φ → ψ) ∨ (□ψ → □φ)`
+* $`□(φ ∨ ψ) → (□φ ∨ □ψ)`
+* $`□(□φ → φ) → □φ`
+
+:::details "Solutions"
+```lean
+example (M : @Model Φ) (φ : L Φ) : M ⊭ (□ₜφ →ₜ φ) := by
+
 ```
 :::
