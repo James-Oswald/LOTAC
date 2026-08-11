@@ -1,6 +1,6 @@
 import VersoManual
-import LOTAC2.Formula
+import LOTAC2
 
 open Verso.Genre Manual
 
-def main := manualMain (%doc LOTAC2.Formula)
+def main := manualMain (%doc LOTAC2)

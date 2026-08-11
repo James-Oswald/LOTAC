@@ -1,6 +1,7 @@
 # LOTAC
 
-LOTAC is a modal logic library and textbook written in Lean and Verso.
+LOTAC2 is a modal logic library and textbook written in Lean and Verso.
+The original `LOTAC/` development is retained as reference material.
 
 ## Build
 
@@ -24,4 +25,5 @@ python3 -m http.server 8000 -d _out/html-multi
 
 Then open <http://localhost:8000/>.
 
-The book entry point is `Textbook.lean`; chapters live in `Textbook/`.
+The book entry point is `LOTAC2.lean`; its chapters live in `LOTAC2/`.
+`Textbook/Blocks.lean` provides shared Verso components.

@@ -1,6 +1,6 @@
 name = "LOTAC"
 version = "0.1.0"
-defaultTargets = ["lotac", "textbook", "LOTAC2"]
+defaultTargets = ["LOTAC2", "textbook"]
 
 [leanOptions]
 verso.code.warnLineLength = 80
@@ -25,13 +25,5 @@ name = "LOTAC2"
 name = "Textbook"
 
 [[lean_exe]]
-name = "lotac"
-root = "Main"
-
-[[lean_exe]]
 name = "textbook"
-root = "TextbookMain"
-
-[[lean_exe]]
-name = "lotac2_textbook"
 root = "LOTAC2TextbookMain"
