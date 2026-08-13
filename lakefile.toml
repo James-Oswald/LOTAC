@@ -23,7 +23,13 @@ name = "LOTAC2"
 
 [[lean_lib]]
 name = "Textbook"
+needs = ["references"]
 
 [[lean_exe]]
 name = "textbook"
 root = "LOTAC2TextbookMain"
+
+[[input_file]]
+name = "references"
+path = "references.bib"
+text = true

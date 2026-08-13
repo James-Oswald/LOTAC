@@ -1,4 +1,5 @@
 import VersoManual
+import Textbook.Bibliography
 
 open Lean
 open Verso Doc Elab ArgParse

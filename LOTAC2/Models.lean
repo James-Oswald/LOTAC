@@ -558,9 +558,9 @@ providing a countermodel or counterframe.
 * $`□(□φ → φ) → □φ`
 
 :::details "Solutions"
-In each picture, an arrow from wᵢ to wⱼ means that wⱼ is accessible from wᵢ.
-Worlds are numbered automatically. The second line inside each circle lists
-which of φ, ψ, and χ are true there; ∅ means that none of these atoms is true.
+In each picture, an arrow from wᵢ to wⱼ means that wⱼ is accessible from wᵢ.The
+second line inside each circle lists which of φ, ψ, and χ are true there;
+∅ means that none of these atoms is true.
 
 The denumerability of Φ ensures that φ and ψ name distinct atoms.
 
