@@ -11,13 +11,16 @@ private def textbookBlockCss := r#"
   margin: var(--verso--box-vertical-margin) 0;
   border: 1px solid color-mix(in srgb, currentColor 32%, transparent);
   border-radius: 0.45rem;
-  overflow: hidden;
+  /* Verso's margin notes float outside the text column. Clipping here makes
+     notes inside a definition or theorem disappear on wide screens. */
+  overflow: visible;
   background: color-mix(in srgb, currentColor 2.5%, transparent);
 }
 
 .textbook-block-title {
   padding: 0.65rem var(--verso--box-padding);
   border-bottom: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: calc(0.45rem - 1px) calc(0.45rem - 1px) 0 0;
   background: color-mix(in srgb, currentColor 7%, transparent);
   font-family: var(--verso-structure-font-family);
   font-weight: 700;
@@ -62,11 +65,13 @@ private def textbookDetailsCss := r#"
   border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
   border-radius: 0.4rem;
   background: color-mix(in srgb, currentColor 2.5%, transparent);
-  overflow: hidden;
+  /* Keep margin notes in expanded details visible outside the box. */
+  overflow: visible;
 }
 
 .textbook-details > summary {
   padding: 0.65rem var(--verso--box-padding);
+  border-radius: calc(0.4rem - 1px);
   background: color-mix(in srgb, currentColor 6%, transparent);
   cursor: pointer;
   font-family: var(--verso-structure-font-family);
@@ -75,6 +80,7 @@ private def textbookDetailsCss := r#"
 
 .textbook-details[open] > summary {
   border-bottom: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: calc(0.4rem - 1px) calc(0.4rem - 1px) 0 0;
 }
 
 .textbook-details-body {

@@ -17,15 +17,22 @@ a binary relation on $`S` called the accessibility relation.
 
 ```lean
 structure Frame where
+  -- The type of worlds
   S : Type
+  /-- Require that the set of worlds is non-empty -/
   [S_nonempty : Nonempty S]
+  /-- The accessibility relation on worlds -/
   R : S → S → Prop
 ```
 
-A Φ-model is a pair $`(F, V)` where `F` is a frame and `V` is a valuation
-function that assigns to each propositional variable a set of worlds in `F`.
-We represent models as an extension of frames with a valuation function.
+A Φ-model is a pair $`(F, V)` where `F` is a frame and `V` is a _valuation
+function_ that assigns worlds and propositional variables to truth values.
+I.e a propositional variable $`p` holds at a world $`w` if and only if
+$`V(p,w)`$.
 
+In Lean we represent models as an extension of frames with a valuation function.
+{margin}[This lets us use `M.S` and `M.R` from the frame, rather than needing to
+write `M.F.S` and `M.F.R`, if we used the frame directly in the structure.]
 ```lean
 variable {Φ : Type}
 
@@ -35,6 +42,9 @@ structure Model extends Frame where
 ```
 
 ```lean -show
+
+--The following code is used to render finite models as diagrams.
+--It is not part of the formalization, but extremely useful for visualization.
 open Illuminate
 
 private def decideToBool (d : Decidable p) : Bool :=
@@ -83,9 +93,17 @@ def Model.diagram (M : @Model Φ) [FinEnum M.S] [Denumerable Φ]
 :::
 
 :::definition "Satisfaction in a Model"
-Let $`M = (F, V)` be a Φ-model and let $`w` be a world in `F`.
-We define the satisfaction relation $`M, w \vDash φ` for a formula `φ`
+Let $`M = (S, R, V)` be a Φ-model and let $`w` be a world in `S`.
+We define the satisfaction relation $`M \vDash_w φ` for a formula `φ`
 inductively as follows.
+$$`
+\begin{aligned}
+M \vDash_w p &\quad\text{iff}\quad V(p, w)\\
+M \vDash_w ⊥ &\quad\text{iff}\quad \text{False}\\
+M \vDash_w φ → ψ &\quad\text{iff}\quad M \vDash_w φ \rightarrow M \vDash_w ψ\\
+M \vDash_w □φ &\quad\text{iff}\quad \forall v, R(w, v) \rightarrow M \vDash_v φ
+\end{aligned}
+`
 
 ```lean
 @[simp]
@@ -102,11 +120,23 @@ notation M " ⊭[" w "] " φ => ¬ M ⊨[w] φ
 Thus `M ⊨[w] φ` says that `φ` is satisfied at `w`, while
 `M ⊭[w] φ` says that it is not satisfied there.
 
-The derived connectives are defined as follows.
+Satisfaction extends to the other logical connectives based on their
+definitions. Note that these themselves are not definitions, but are theorems
+that follow from the definition of satisfaction and the definitions of the
+logical connectives.
+$$`
+\begin{aligned}
+M \vDash_w ¬φ &\quad\text{iff}\quad M \nvDash_w φ\\
+M \vDash_w φ ∧ ψ &\quad\text{iff}\quad M \vDash_w φ \wedge M \vDash_w ψ\\
+M \vDash_w φ ∨ ψ &\quad\text{iff}\quad M \vDash_w φ \vee M \vDash_w ψ\\
+M \vDash_w φ ↔ ψ &\quad\text{iff}\quad M \vDash_w φ \leftrightarrow M \vDash_w ψ\\
+M \vDash_w ◇φ &\quad\text{iff}\quad \exists v, R(w, v) \wedge M \vDash_v φ
+\end{aligned}
+`
 
 ```lean
 theorem Model.satisfies_neg (M : @Model Φ) (w : M.S) (φ : L Φ) :
-(M ⊭[w] φ) ↔ (M ⊨[w] ¬ₜφ) := by
+(M ⊨[w] ¬ₜφ) ↔ (M ⊭[w] φ) := by
   rfl
 
 @[simp]
@@ -147,171 +177,12 @@ theorem Model.satisfies_dia (M : @Model Φ) (w : M.S) (φ : L Φ) :
 :::
 
 
-:::definition "Quasi-atomic Formulae"
-A formula is quasi-atomic if it is either atomic or begins with a box.
-```lean
-@[simp]
-def L.isQuasiAtomic {Φ : Type} : L Φ → Prop
-| .atom _ => True
-| .box _ => True
-| _ => False
-```
-
-A Quasi-atomic subformula valuation is a valuation function that assigns
-true or false to each quasi-atomic subformula of a formula.
-
-```lean
-abbrev QuasiAtomicSubformulaValuation [Denumerable Φ] (φ : L Φ) : Type :=
-  (ψ : L Φ) → ψ.isQuasiAtomic → ψ ∈ φ.subformulae → Prop
-
-```
-Given a quasi-atomic valuation `V`, we can extend it to a valuation of
-an arbitrary formula `φ`. To do this, we need to be able to lift
-valuations on implications to valuations on their left and right subformulae.
-The following definitions provide this lifting.
-```lean
-/--
-Given a quasi-atomic subformula valuation of an implication,
-return a valuation over subformulae of the left-hand side of the implication.
- -/
-def QuasiAtomicSubformulaValuation.left
-[Denumerable Φ] {φ ψ : L Φ}
-(V : QuasiAtomicSubformulaValuation (φ →ₜ ψ)) :
-QuasiAtomicSubformulaValuation φ :=
-  fun χ hqa hχ => V χ hqa (by
-    simp only [L.subformulae, Finset.mem_union,
-      Finset.mem_singleton]
-    exact Or.inl (Or.inr hχ))
-
-def QuasiAtomicSubformulaValuation.right
-[Denumerable Φ] {φ ψ : L Φ}
-(V : QuasiAtomicSubformulaValuation (φ →ₜ ψ)) :
-QuasiAtomicSubformulaValuation ψ :=
-  fun χ hqa hχ => V χ hqa (by
-    simp only [L.subformulae, Finset.mem_union,
-      Finset.mem_singleton]
-    exact Or.inr hχ)
-```
-With these we can then define the extended valuation.
-```lean
-def ExtendQuasiAtomicValuation [Denumerable Φ]
- (φ : L Φ) (V : QuasiAtomicSubformulaValuation φ) : Prop :=
-match h: φ with
-| .atom p => V (.atom p)
-  (by simp only [L.isQuasiAtomic])
-  (by simp only [L.subformulae, Finset.mem_singleton])
-| .box φ => V (.box φ)
-  (by simp only [L.isQuasiAtomic])
-  (by apply L.subformulae_mem_refl)
-| .bot => False
-| .imp φ ψ =>
-  (ExtendQuasiAtomicValuation φ V.left) →
-    (ExtendQuasiAtomicValuation ψ V.right)
-```
-:::
-
-:::definition "Tautologies"
-We can define the notion of tautology in terms of quasi-atomic subformulae.
-We say a formula φ is a tautology if its extended valuation is true for
-every valuation of its quasi-atomic subformula. This idea naturally
-coresponds to the notion of tautology in propositional logic, where a formula
-is a tautology if it is true under every assignment of truth values to
-its propositional variables, except now we consider quasi-atomic subformulae
-instead.
-```lean
-def L.isTautology [Denumerable Φ] (φ : L Φ) : Prop :=
-  ∀ V : QuasiAtomicSubformulaValuation φ, ExtendQuasiAtomicValuation φ V
-```
-:::
-
-A consequence of this is that any tautology is a subsitution instance of
-a "box-free" tautology, i.e. a tautolohy in propositional logic.
-
-:::details "Proof"
-```lean
-@[simp]
-def L.boxFree : L Φ → Prop
-| .atom _ => True
-| .bot => True
-| .imp φ ψ => φ.boxFree ∧ ψ.boxFree
-| .box _ => False
-
-theorem L.subst_boxFree_tautology
-[Denumerable Φ] (φ : L Φ) (h1 : φ.isTautology) :
-∃ (ψ : L Φ), ψ.boxFree ∧ ψ.isTautology ∧ φ.isSubstInstance ψ := by
-  classical
-  let name (A : L Φ) := Denumerable.ofNat Φ (Encodable.encode A)
-  let erase : L Φ → L Φ := L.rec
-    (fun p => .atom (name (.atom p))) .bot
-    (fun _ _ A B => A →ₜ B)
-    (fun A _ => .atom (name (.box A)))
-  let eval : L Φ → (L Φ → Prop) → Prop := L.rec
-    (fun p V => V (.atom p)) (fun _ => False)
-    (fun _ _ VA VB V => VA V → VB V)
-    (fun A _ V => V (.box A))
-  have congr : ∀ (A : L Φ) V W,
-      (∀ B hq hB hB', V B hq hB = W B hq hB') →
-      (ExtendQuasiAtomicValuation A V ↔
-        ExtendQuasiAtomicValuation A W) := by
-    intro A; induction A with
-    | atom p => intros; exact iff_of_eq (by apply_assumption)
-    | bot => simp [ExtendQuasiAtomicValuation]
-    | box A => intros; exact iff_of_eq (by apply_assumption)
-    | imp A B ihA ihB =>
-        intro V W h
-        simp only [ExtendQuasiAtomicValuation]
-        rw [ihA V.left W.left, ihB V.right W.right]
-        all_goals intros; apply h
-  have total : ∀ (A : L Φ) (V : L Φ → Prop),
-      ExtendQuasiAtomicValuation A (fun B _ _ => V B) ↔ eval A V := by
-    intro A; induction A with
-    | atom p => intro V; rfl
-    | bot => intro V; rfl
-    | box A => intro V; rfl
-    | imp A B ihA ihB =>
-        intro V
-        simp only [ExtendQuasiAtomicValuation, eval]
-        rw [congr A _ (fun C _ _ => V C),
-          congr B _ (fun C _ _ => V C), ihA, ihB]
-        all_goals intros; rfl
-  have free : ∀ A, (erase A).boxFree := by
-    intro A; induction A <;> simp_all [erase]
-  have rename : ∀ A V, eval (erase A) V ↔
-      eval A (fun B => V (.atom (name B))) := by
-    intro A; induction A <;> simp_all [erase, eval]
-  have subst : ∀ A, A = L.subst
-      (fun p => (Encodable.decode (Encodable.encode p)).getD (.atom p))
-      (erase A) := by
-    intro A; induction A with
-    | atom p =>
-        simp [erase, name, L.subst, Denumerable.encode_ofNat]
-    | bot => rfl
-    | imp A B ihA ihB =>
-        simp only [erase, L.subst, L.imp.injEq]
-        exact ⟨ihA, ihB⟩
-    | box A =>
-        simp [erase, name, L.subst, Denumerable.encode_ofNat]
-  refine ⟨erase φ, free φ, ?_, ⟨_, subst φ⟩⟩
-  · intro W
-    let V : L Φ → Prop := fun A =>
-      if hqa : A.isQuasiAtomic then
-        if hA : A ∈ (erase φ).subformulae then W A hqa hA
-        else False
-      else False
-    rw [congr _ W (fun A _ _ => V A)]
-    · rw [total, rename, ← total]
-      exact h1 (fun A _ _ => V (.atom (name A)))
-    · intro A hqa hA hA'
-      simp only [V, dif_pos hqa, dif_pos hA]
-```
-:::
 
 
 :::definition "Truth and Validity"
 
 A formula φ is true in a model M if it is satisfied at every world in M.
-$$`M \vDash^m φ \quad\text{iff}\quad
-    M,w \vDash φ\text{ for every }w\in M.S.`
+$$`M \vDash^m φ \quad\text{iff}\quad \forall w, M \vDash_w φ`
 
 We use superscripts on the turnstile to make the level of the
 semantics explicit: `m` for models, `f` for frames, and `c` for
@@ -320,7 +191,7 @@ classes of frames. Replacing `⊨` with `⊭` negates each relation.
 ```lean
 @[simp]
 def L.true_in_model (M : @Model Φ) (φ : L Φ) : Prop :=
-  ∀ w : M.S, M ⊨[w] φ
+  ∀ w, M ⊨[w] φ
 
 infixl:51 " ⊨ᵐ " => L.true_in_model
 notation M " ⊭ᵐ " φ => ¬ L.true_in_model M φ
@@ -438,14 +309,16 @@ theorem schema_not_valid_of_not_valid
 
 *Exercises*
 
-1) Show that the following schema are true in all models,
-   hence valid in all frames.
-* $`□⊤`
-* $`□(φ → ψ) → (□φ → □ψ)`
-* $`◇(φ → ψ) → (□φ → ◇ψ)`
-* $`□(φ → ψ) → (◇φ → ◇ψ)`
-* $`□(φ ∧ ψ) ↔ (□φ ∧ □ψ)`
-* $`◇(φ ∨ ψ) ↔ (◇φ ∨ ◇ψ)`
+1) Show that the following schema are true in all models.
+$$`
+\begin{aligned}
+□⊤ & \\
+□(φ → ψ) → (□φ → □ψ) & \text{(the K axiom)} \\
+◇(φ → ψ) → (□φ → ◇ψ) & \\
+□(φ → ψ) → (◇φ → ◇ψ) & \\
+□(φ ∧ ψ) ↔ (□φ ∧ □ψ) & \\
+◇(φ ∨ ψ) ↔ (◇φ ∨ ◇ψ) & \\
+\end{aligned}`
 
 :::details "Solutions"
 The denumerability of `Φ` gives us an enumeration of its atoms.
@@ -462,7 +335,6 @@ local notation "φ" => L.atom φ₀
 local notation "ψ" => L.atom ψ₀
 
 example : ⊨ˢ (□ₜ⊤ₜ : L Φ) := by
-  change ∀ M : @Model Φ, ∀ x ∈ [□ₜ⊤ₜ]ₛ, M ⊨ᵐ x
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
   intro w v _ h2
@@ -478,26 +350,20 @@ example : ⊨ˢ (◇ₜ(φ →ₜ ψ) →ₜ (□ₜφ →ₜ ◇ₜψ)) := by
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
   intro w hdia hbox
-  rcases (M.satisfies_dia w _).mp hdia with
-    ⟨v, hv, himp⟩
-  exact (M.satisfies_dia w _).mpr
-    ⟨v, hv, himp (hbox v hv)⟩
+  rcases (M.satisfies_dia w _).mp hdia with ⟨v, hv, himp⟩
+  exact (M.satisfies_dia w _).mpr ⟨v, hv, himp (hbox v hv)⟩
 
 example : ⊨ˢ (□ₜ(φ →ₜ ψ) →ₜ (◇ₜφ →ₜ ◇ₜψ)) := by
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
   intro w hbox hdia
-  rcases (M.satisfies_dia w _).mp hdia with
-    ⟨v, hv, hφ⟩
-  exact (M.satisfies_dia w _).mpr
-    ⟨v, hv, hbox v hv hφ⟩
+  rcases (M.satisfies_dia w _).mp hdia with ⟨v, hv, hφ⟩
+  exact (M.satisfies_dia w _).mpr ⟨v, hv, hbox v hv hφ⟩
 
 example : ⊨ˢ (□ₜ(φ ∧ₜ ψ) ↔ₜ (□ₜφ ∧ₜ □ₜψ)) := by
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
-  change M ⊨ᵐ
-    (□ₜ(σ φ₀ ∧ₜ σ ψ₀) ↔ₜ
-      (□ₜ(σ φ₀) ∧ₜ □ₜ(σ ψ₀)))
+  change M ⊨ᵐ (□ₜ(σ φ₀ ∧ₜ σ ψ₀) ↔ₜ (□ₜ(σ φ₀) ∧ₜ □ₜ(σ ψ₀)))
   intro w
   rw [Model.satisfies_iff, Model.satisfies_and]
   constructor
@@ -514,16 +380,13 @@ example : ⊨ˢ (□ₜ(φ ∧ₜ ψ) ↔ₜ (□ₜφ ∧ₜ □ₜψ)) := by
 example : ⊨ˢ (◇ₜ(φ ∨ₜ ψ) ↔ₜ (◇ₜφ ∨ₜ ◇ₜψ)) := by
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
-  change M ⊨ᵐ
-    (◇ₜ(σ φ₀ ∨ₜ σ ψ₀) ↔ₜ
-      (◇ₜ(σ φ₀) ∨ₜ ◇ₜ(σ ψ₀)))
+  change M ⊨ᵐ (◇ₜ(σ φ₀ ∨ₜ σ ψ₀) ↔ₜ (◇ₜ(σ φ₀) ∨ₜ ◇ₜ(σ ψ₀)))
   intro w
   rw [Model.satisfies_iff, Model.satisfies_or]
   apply Iff.intro
   · case mp =>
     intro h
-    rcases (M.satisfies_dia w _).mp h with
-      ⟨v, hv, hφψ⟩
+    rcases (M.satisfies_dia w _).mp h with ⟨v, hv, hφψ⟩
     cases (M.satisfies_or v _ _).mp hφψ with
     | inl hφ =>
         exact Or.inl ((M.satisfies_dia w _).mpr
@@ -548,14 +411,18 @@ example : ⊨ˢ (◇ₜ(φ ∨ₜ ψ) ↔ₜ (◇ₜφ ∨ₜ ◇ₜψ)) := by
 :::
 
 2) Show that the following schema do not hold in all frames by
-providing a countermodel or counterframe.
-* $`□φ → φ`
-* $`◇⊤`
-* $`□(φ → ψ) → (□φ → ◇ψ)`
-* $`◇φ → □φ`
-* $`□(□φ → ψ) ∨ □(□ψ → □φ)`
-* $`□(φ ∨ ψ) → (□φ ∨ □ψ)`
-* $`□(□φ → φ) → □φ`
+providing a countermodel or counterframe. Some of these formulae are famous
+named axioms, which we will study in later chapters.
+$$`
+\begin{aligned}
+□φ → φ & \text{(the T axiom)} \\
+◇⊤ & \text{(variant of the D axiom)} \\
+□(φ → ψ) → (□φ → ◇ψ) & \\
+◇φ → □φ & \text{(Brouwer's axiom / the 5 axiom)} \\
+□(□φ → ψ) ∨ □(□ψ → □φ) &  \\
+□(φ ∨ ψ) → (□φ ∨ □ψ) & \\
+□(□φ → φ) → □φ & \text{(Löb's axiom)}
+\end{aligned}`
 
 :::details "Solutions"
 In each picture, an arrow from wᵢ to wⱼ means that wⱼ is accessible from wᵢ.The
@@ -773,8 +640,7 @@ Model.diagram (reflexiveCountermodel (Φ := Nat))
 ```
 
 ```lean
-example :
-    ⊭ˢ (□ₜ(□ₜφ →ₜ φ) →ₜ □ₜφ) := by
+example : ⊭ˢ (□ₜ(□ₜφ →ₜ φ) →ₜ □ₜφ) := by
   apply schema_not_valid_of_not_valid
   apply not_valid_iff_countermodel.mpr
   let M : @Model Φ := reflexiveCountermodel
@@ -788,3 +654,81 @@ example :
   exact h hAntecedent 0 trivial
 ```
 :::
+
+3) Show that $`◇⊤` and schema $`□φ → ◇φ` share the same models. i.e
+$`∀ M, (M ⊨ᵐ ◇⊤) ↔ (M ⊨ᵐˢ □φ → ◇φ)` {margin}[In other words, these are two
+different ways of expressing the same property of models, or as we will see later,
+equivalent ways of writing the D axiom.]
+
+:::details "Solution"
+```lean
+example : ∀ M : @Model Φ, (M ⊨ᵐ ◇ₜ⊤ₜ) ↔ (M ⊨ᵐˢ (□ₜφ →ₜ ◇ₜφ)) := by
+  sorry
+```
+:::
+
+4) Exhibit a frame that validates □⊥. i.e., prove $`∃ F, F ⊨ᶠ □⊥`.
+:::details "Solution"
+```lean
+example : ∃ F, F ⊨ᶠ (□ₜ⊥ₜ : L Φ) := by
+  sorry
+```
+:::
+
+5) Show the following. (1) If a formula is a tautology, it holds in any model
+(i.e. it is valid, $`M ⊨ᵐ φ` for all $`M`) . (2) If $`M ⊨ᵐ φ → ψ` and $`M ⊨ᵐ φ`
+then $`M ⊨ᵐ ψ`. (3) if $`M ⊨ᵐ φ` then $`M ⊨ᵐ □φ`.
+```lean
+example : ∀ M : @Model Φ, (⊨ φ) → (M ⊨ᵐ φ) := by
+  sorry
+
+example : ∀ M : @Model Φ, (M ⊨ᵐ (φ →ₜ ψ)) ∧ (M ⊨ᵐ φ) → (M ⊨ᵐ ψ) := by
+  sorry
+
+example : ∀ M : @Model Φ, (M ⊨ᵐ φ) → (M ⊨ᵐ □ₜφ) := by
+  sorry
+```
+
+6) Show that the above hold for frames as well. i.e.
+(1) If a formula is a tautology, it holds in any frame,
+(2) If $`F ⊨ᶠ φ → ψ` and $`F ⊨ᶠ φ` then $`F ⊨ᶠ ψ`.
+(3) if $`F ⊨ᶠ φ` then $`F ⊨ᶠ □φ`.
+```lean
+example : ∀ F : Frame, (⊨ φ) → (F ⊨ᶠ φ) := by
+  sorry
+
+example : ∀ F : Frame, (F ⊨ᶠ (φ →ₜ ψ)) ∧ (F ⊨ᶠ φ) → (F ⊨ᶠ ψ) := by
+  sorry
+
+example : ∀ F : Frame, (F ⊨ᶠ φ) → (F ⊨ᶠ □ₜφ) := by
+  sorry
+```
+
+# Ancestral and Descendant Worlds
+
+Given a frame $`F = (S, R)` and a world $`w \in S`, we define the
+reflexive transitive closure of $`R` as follows. We begin by defining the
+$`n`-step accessibility relation $`R^n` for each natural number $`n`.
+$$`
+R^0(w, v) \quad\text{iff}\quad w = v
+R^{n+1}(w, v) \quad\text{iff}\quad R(w, v) \vee \exists u, R(w, u) \wedge R^n(u, v)
+`
+
+```lean
+def Frame.R_n (F : Frame) : Nat → F.S → F.S → Prop
+| 0, w, v => w = v
+| n+1, w, v => F.R w v ∨ ∃ u, F.R w u ∧ Frame.R_n F n u v
+```
+From this we define the reflexive transitive closure $`R^*` as existance
+of an $`n` such that $`R^n(w, v)` holds.
+
+```lean
+def Frame.R_Star (F : Frame) (w v : F.S) : Prop :=
+  ∃ n, Frame.R_n F n w v
+```
+
+## Exercises
+
+1) R^1 = R. Show that for any frame F, any world w, and any world v, we have
+$`R^1(w, v) \quad\text{iff}\quad R(w, v)`
+2)
