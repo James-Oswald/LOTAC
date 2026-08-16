@@ -200,20 +200,18 @@ notation M " ⊭ᵐ " φ => ¬ L.true_in_model M φ
 ```
 
 A formula φ is valid in a frame F if it is true in every model based on F.
-$$`F \vDash^f φ \quad\text{iff}\quad
-    M \vDash^m φ\text{ for every model }M\text{ based on }F.`
+$$`F \vDash^f φ := ∀ V, (F, V) \vDash^m φ`
 ```lean
 @[simp]
 def L.valid_in_frame (F : Frame) (φ : L Φ) : Prop :=
-  ∀ M : @Model Φ, M.toFrame = F → M ⊨ᵐ φ
+  ∀ V, (Model.mk F V) ⊨ᵐ φ
 
 infixl:51 " ⊨ᶠ " => L.valid_in_frame
 notation F " ⊭ᶠ " φ => ¬ L.valid_in_frame F φ
 ```
 
 A formula φ is valid in a class of frames C if it is valid in every frame in C.
-$$`C \vDash^c φ \quad\text{iff}\quad
-    F \vDash^f φ\text{ for every }F\in C.`
+$$`C \vDash^c φ := ∀ F ∈ C, F \vDash^f φ`
 In Lean we represent a class as a set of frames.
 ```lean
 @[simp]
@@ -238,8 +236,7 @@ theorem L.valid_iff_valid_in_class (φ : L Φ) :
   simp only [valid, true_in_model, valid_in_class,
     Set.mem_univ, valid_in_frame, forall_const]
   apply Iff.intro
-  · intro a F M a_1 w
-    subst a_1
+  · intro a F V w
     simp_all only
   · intro a M w
     simp_all only
@@ -821,7 +818,7 @@ For any model $`M = (S, R, V)`, any $`w \in S`, and any world $`v \in S_w`
 We have that $`M_w ⊨_v φ` if and only if $`M ⊨_v φ`.
 ```lean
 theorem Model.submodel_lemma
-(M : @Model Φ) (φ : L Φ) (w : M.S) (v : M.S_sub w) :
+(M : @Model Φ) {φ : L Φ} {w : M.S} {v : M.S_sub w} :
 (M.submodel w ⊨[v] φ) ↔ M ⊨[v] φ := by
   induction φ generalizing v
   . case atom p =>
@@ -838,9 +835,9 @@ theorem Model.submodel_lemma
     · intro h u hvu
       have hu : M.R_Star w u := by
         exact Frame.R_Star.trans M.toFrame w v u v.2 ⟨1, Or.inl hvu⟩
-      exact (ih ⟨u, hu⟩).mp (h ⟨u, hu⟩ hvu)
+      exact (@ih ⟨u, hu⟩).mp (h ⟨u, hu⟩ hvu)
     · intro h u hvu
-      exact (ih u).mpr (h u.1 hvu)
+      exact (@ih u).mpr (h u.1 hvu)
 ```
 
 From this we get three corolaries:
@@ -853,23 +850,31 @@ $$`F ⊨ᶠ φ \iff ∀w, F_w ⊨ᶠ φ`
 ```lean
 
 lemma Model.submodel_satisfies_from_satisfies
-(M : @Model Φ) (φ : L Φ) (w : M.S) :
+(M : @Model Φ) {φ : L Φ} {w : M.S} :
 (M ⊨ᵐ φ) → (M.submodel w ⊨ᵐ φ) := by
   intro h v
-  exact (Model.submodel_lemma M φ w v).mpr (h v.1)
+  exact M.submodel_lemma.mpr (h v.1)
 
 lemma Model.satisfies_iff_all_submodel_satisfies
-(M : @Model Φ) (φ : L Φ) :
+(M : @Model Φ) {φ : L Φ} :
 (M ⊨ᵐ φ) ↔ ∀w, M.submodel w ⊨ᵐ φ := by
   constructor
   · intro h w
-    exact Model.submodel_satisfies_from_satisfies M φ w h
+    exact M.submodel_satisfies_from_satisfies h
   · intro h v
-    sorry
+    have h' := h v
+    simp at h'
+    have h'' := h' ⟨v, by apply Frame.R_Star.refl⟩
+    exact M.submodel_lemma.mp h''
 
 lemma Frame.valid_iff_all_subframe_valid
-(F : Frame) (φ : L Φ) :
+(F : Frame) {φ : L Φ} :
 (F ⊨ᶠ φ) ↔ ∀w, F.subframe w ⊨ᶠ φ := by
-  sorry
+  simp only [L.valid_in_frame]
+  constructor
+  · intro h w M hM
+    sorry
+  . intro h M hM
+    sorry
 ```
 :::
