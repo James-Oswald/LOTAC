@@ -1024,3 +1024,54 @@ example : (⟨ℕ, (· < ·)⟩ ⊨ᶠ φ) → (⟨Fin 2, λ _ _ => True⟩ ⊨�
 # Frame Conditions
 
 TODO, most important section
+
+# Proof Theory
+
+:::definition "Logic"
+Given a denumerable set of atomic formulae $`Φ`, a logic is any subset
+$`Λ ⊆ Fma(\Φ)` such that:
+1) $`Λ` includes all tautologies
+2) $`Λ` is closed under _the rule of detachment_ i.e
+  $$`φ ∈ Λ, φ → ψ ∈ Λ \implies ψ ∈ Λ`
+
+```lean
+class Logic [Denumerable Φ] (Λ : Set (L Φ)) : Prop where
+  all_tauto {φ : L Φ} : φ.isTautology → φ ∈ Λ
+  detachment {φ ψ : L Φ} : φ ∈ Λ ∧ (φ →ₜ ψ) ∈ Λ → ψ ∈ Λ
+```
+:::
+
+Some examples of logics are
+1) The set of all tautologies, which we call $`PL`.
+2) For any class of frames $`C`, the set of all formulae valid in all frames in $`C`
+3) The set of all formulae itself.
+4) The intersection of any collection of logics $`\{Λ_i | i ∈ I\}`.
+  $$`\bigcap_{i ∈ I} Λ_i`
+
+```lean
+theorem Logic.intersection [Denumerable Φ] (Λ : I → Set (L Φ))
+[∀ i, Logic (Λ i)] :
+  Logic (⋂ i, Λ i) := by
+  sorry
+```
+
+
+Since the intersection of any collection of logics is itself a logic, we can
+define the _smallest logic_ containing a set of formulae $`Γ`$ as the
+intersection of all logics containing $`Γ`$.
+
+
+:::definition "Smallest Logic"
+Given a set of formulae $`Γ ⊆ Fma(Φ)`$, the _smallest logic_ containing
+$`Γ`$ is the intersection of all logics containing $`Γ`$.
+
+From this, we note that PL is the smallest logic, and FBA is the largest,
+in the sense that any logic $`Λ` satisfies $`PL ⊆ Λ ⊆ FBA`.
+```lean
+lemma Logic.PL_subset [Denumerable Φ] (Λ : Set (L Φ)) [Logic Λ] : PL ⊆ Λ := by
+  intro φ h
+  sorry
+
+```
+
+:::
