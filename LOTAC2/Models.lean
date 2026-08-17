@@ -763,6 +763,8 @@ theorem Frame.R_Star.refl (F : Frame) (w : F.S) : F.R_Star w w := by
 
 theorem Frame.R_Star.trans (F : Frame) (w u v : F.S) :
 F.R_Star w u → F.R_Star u v → F.R_Star w v := by
+  simp
+  intro n H1 m H2
   sorry
 ```
 
@@ -878,3 +880,147 @@ lemma Frame.valid_iff_all_subframe_valid
     sorry
 ```
 :::
+
+# P-morphisms
+
+:::definition "p-Morphisms"
+Let $`M_1 = (S_1, R_1, V_1)` and $`M_2 = (S_2, R_2, V_2)`.
+A function $`f:S_1 → S_2` satisfying the following three
+conditions is called a _p-morphism_ from $`M_1` to $`M_2`.
+$$`
+\begin{aligned}
+R_1(s,t) &→ R_2(f(s), f(t)) \\
+R_2(f(s), u) &→ ∃t, R_1(s,t) ∧ f(t) = u \\
+V_1(p, s) \iff V_2(p, f(s))
+\end{aligned}
+`
+A function satisfying only the first two conditions is said to be
+a p-morphism on frames.
+```lean
+
+class pMorphismF {F1 F2 : Frame} (f : F1.S → F2.S) : Prop where
+  c1 {s t : F1.S} : F1.R s t → F2.R (f s) (f t)
+  c2 {s : F1.S} {u : F2.S} : F2.R (f s) u → ∃t, F1.R s t ∧ f t = u
+
+class pMorphism {M1 M2 : @Model Φ} (f : M1.S → M2.S) : Prop
+extends pMorphismF f where
+  c3 {p : Φ} {s : M1.S} : M1.V p s ↔ M2.V p (f s)
+```
+:::
+
+
+:::theorem "p-Morphism Lemma"
+
+For any formula $`φ`, two models $`M_1, M_2`, world $`w ∈ S_1`
+and p-Morphism between them $`f`,
+we have that $$`M_1 ⊨_w φ ↔ M_2 ⊨_{f(w)} φ`
+
+```lean
+theorem pMorphism.satisfies_iff
+{M1 M2 : @Model Φ} {f : M1.S → M2.S} [pMorphism f] {φ : L Φ} {w : M1.S} :
+(M1 ⊨[w] φ) ↔ (M2 ⊨[f w] φ) := by
+  induction φ generalizing w
+  . case atom p =>
+    simp_all only [Model.satisfies]
+    apply Iff.intro
+    · intro a
+      apply pMorphism.c3.mp a
+    · intro a
+      apply pMorphism.c3.mpr a
+  . case bot =>
+    simp_all only [Model.satisfies]
+  . case imp a1 a2 ih1 ih2 =>
+    simp_all only [Model.satisfies]
+  . case box a1 ih =>
+    simp_all only [Model.satisfies]
+    apply Iff.intro
+    · intro a v a_1
+      have ⟨_, hw⟩ := pMorphismF.c2 a_1
+      obtain ⟨left, right⟩ := hw
+      subst right
+      simp_all only
+    · intro a v a_1
+      apply a
+      exact pMorphismF.c1 a_1
+```
+
+:::
+
+:::definition "p-Morphic Image"
+For two frames $`F_1` and $`F_2` we say $`F_1` is the _p-morphic image_ of
+$`F_2` if there exists a surjective p-morphism $`f` between them.
+
+```lean
+@[simp]
+def pMorphicImage (F1 F2 : Frame) : Prop :=
+∃ (f : F1.S → F2.S), pMorphismF f ∧ Function.Surjective f
+```
+:::
+
+This then leads us to the following
+
+:::theorem "p-Morphism Lemma 2"
+
+If $`F_2` is a p-morphic image of $`F_1` then for any formula $`f`
+$$`(F_1 ⊨ᶠ φ) → (F_2 ⊨ᶠ φ)`
+
+```lean
+-- TODO: rename
+theorem p_morphism_lemma_2 {F1 F2 : Frame} {H : pMorphicImage F1 F2} {φ : L φ}:
+F1 ⊨ᶠ φ → F2 ⊨ᶠ φ :=
+  sorry
+```
+:::
+
+## Exercises
+
+Given the follwing two frames $`F1 := ({0, 1}, λxy.\texttt{True})` and
+$`F2 := ({0}, λxy.\texttt{True})` show that
+$$`
+\begin{aligned}
+(F_1 ⊨ᶠ φ) &→ (F_2 ⊨ᶠ φ) \\
+((ℕ, <) ⊨ᶠ φ) &→ (F_1 ⊨ᶠ φ) \\
+\end{aligned}
+`
+
+:::details "Solutions"
+Both follow directly from our lemma.
+We can prove both of these by showing that $`F2` is the p-morphic image
+of $`F1` and $`F1` is the $`F1` is the p-morphic image of (ℕ, <). We do this
+by providing an explicit p-morphism.
+```lean
+--TODO: I speed ran this proof and it needs cleanup
+example : (⟨Fin 2, λ _ _ => True⟩ ⊨ᶠ φ) → (⟨Fin 1, λ _ _ => True⟩ ⊨ᶠ φ) := by
+  apply p_morphism_lemma_2
+  exists (λ _ => 0)
+  constructor
+  constructor
+  simp;
+  intro s u a
+  simp_all only [true_and, exists_const]
+  ext : 1
+  simp_all only [Fin.val_eq_zero]
+  simp [Function.Surjective]
+
+example : (⟨ℕ, (· < ·)⟩ ⊨ᶠ φ) → (⟨Fin 2, λ _ _ => True⟩ ⊨ᶠ φ) := by
+  apply p_morphism_lemma_2
+  -- Bad selection of F
+  exists (λ n => match n with | 0 => 0 | n + 1 => 2)
+  constructor
+  . case left =>
+    constructor
+    . case c1 =>
+      intro s t a
+      simp_all only
+    . case c2 => sorry
+  . case right =>
+    simp [Function.Surjective]
+    constructor
+    . case left => exists 0
+    . case right => sorry
+```
+:::
+
+# Frame Conditions
+
+TODO, most important section
