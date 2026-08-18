@@ -1,6 +1,6 @@
 name = "LOTAC"
 version = "0.1.0"
-defaultTargets = ["LOTAC2", "textbook"]
+defaultTargets = ["MDML", "textbook"]
 
 [leanOptions]
 verso.code.warnLineLength = 80
@@ -19,7 +19,7 @@ rev = "v4.33.0"
 name = "LOTAC"
 
 [[lean_lib]]
-name = "LOTAC2"
+name = "MDML"
 
 [[lean_lib]]
 name = "Textbook"
@@ -27,7 +27,7 @@ needs = ["references"]
 
 [[lean_exe]]
 name = "textbook"
-root = "LOTAC2TextbookMain"
+root = "MDML"
 
 [[input_file]]
 name = "references"
