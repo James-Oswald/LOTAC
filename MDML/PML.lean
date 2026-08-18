@@ -24,7 +24,7 @@ over atomic formulae, a falsity constant, an implication constructor $`→`,
 and a necessity constructor $`\Box` (This presentation is taken from
 {citet Goldblatt1992}[]). Using BNF notation, we write the grammar
 for formulae as follows where $`p ∈ Φ`:
-$$`φ ::= p | ⊥ | φ → φ | □φ`
+$$`φ ::= p | ⊥ | φ → φ | □φ`f
 In lean we define formula as an inducutive type `L Φ`. An inductive type is
 a type that is defined by a set of constructors that generate all the elements
 of the type. In this case, the constructors are `atom`, `bot`, `imp`, and `box`.
@@ -652,10 +652,11 @@ prefix:max "⊢ₜ " => L.isTautology
 
 ::: theorem "Congruence of Lifted Quasi-Atomic Valuations"
 If two quasi-atomic subformula valuations $`V` and $`W` agree on all
-quasi-atomic subformulae  of a formula φ, then their lifted valuations
-are equivalent.
-$$`⟦φ⟧_V ↔ ⟦φ⟧_W`$$
+quasi-atomic subformulae of a formula $`φ`$, then their lifted valuations
+are equivalent, $` ⟦φ⟧_V ↔ ⟦φ⟧_W`.
 ```lean
+-- TODO: there is a more natural interpretation of this lemma
+-- in terms of the set of quasi-atomic subformulae of φ
 lemma LiftedQuasiAtomicValuation.congr
 (φ : L Φ) (V W : QuasiAtomicSubformulaValuation φ)
 (H : ∀ B hqa hB hB', V B hqa hB = W B hqa hB') :
@@ -702,18 +703,20 @@ that any tautology is a substitution instance of a box-free tautology.
 Any tautology is a subsitution instance of
 a "box-free" tautology, i.e. a tautology in propositional logic.
 
+$$`⊢ₜ φ ↔ ∃ ψ, ⊢ₚ ψ ∧ φ ≼ₛ ψ`
+
 _Proof._ The proof replaces every quasi-atomic part of $`φ`—each atom and each boxed
 subformula—by a fresh atomic name. Because $`Φ` is denumerable, formulae can be
 encoded injectively as elements of $`Φ`; preserving $`⊥` and $`→` then produces
-a box-free formula $`ψ`.
-
-Every valuation of the new atoms in $`ψ` determines a valuation of the
+a box-free formula $`ψ`. Every valuation of the new atoms in $`ψ` determines a valuation of the
 corresponding quasi-atoms in $`φ`. A structural induction shows that $`ψ` and
 $`φ` have the same truth value under these corresponding valuations, so the
 tautologicity of $`φ` implies that of $`ψ`. Finally, substituting each fresh
 name by the quasi-atomic formula it encodes reconstructs $`φ`, making $`φ` a
 substitution instance of $`ψ`.
 ```lean
+-- TODO, needs to be a bijection, currently only one direction
+-- ⊢ₜ φ ↔ ∃ (ψ : L Φ), (⊢ₚ ψ) ∧ φ ≼ₛ ψ
 theorem L.subst_boxFree_tautology {Φ : Type} [Denumerable Φ]
 (φ : L Φ) (hφ : ⊢ₜ φ) :
 ∃ (ψ : L Φ), (⊢ₚ ψ) ∧ φ ≼ₛ ψ := by
@@ -791,7 +794,7 @@ structure Frame where
   R : S → S → Prop
 ```
 
-A Φ-model is a pair $`(F, V)` where `F` is a frame and `V` is a _valuation
+A $`Φ`-model is a pair $`(F, V)` where `F` is a frame and `V` is a _valuation
 function_ that assigns worlds and propositional variables to truth values.
 I.e a propositional variable $`p` holds at a world $`w` if and only if
 $`V(p,w)`$.
@@ -864,10 +867,10 @@ We define the satisfaction relation $`M \vDash_w φ` for a formula `φ`
 inductively as follows.
 $$`
 \begin{aligned}
-M \vDash_w p &\quad\text{iff}\quad V(p, w)\\
-M \vDash_w ⊥ &\quad\text{iff}\quad \text{False}\\
-M \vDash_w φ → ψ &\quad\text{iff}\quad M \vDash_w φ \rightarrow M \vDash_w ψ\\
-M \vDash_w □φ &\quad\text{iff}\quad \forall v, R(w, v) \rightarrow M \vDash_v φ
+M \vDash_w p &\quad:=\quad V(p, w)\\
+M \vDash_w ⊥ &\quad:=\quad \text{False}\\
+M \vDash_w φ → ψ &\quad:=\quad M \vDash_w φ \rightarrow M \vDash_w ψ\\
+M \vDash_w □φ &\quad:=\quad \forall v, R(w, v) \rightarrow M \vDash_v φ
 \end{aligned}
 `
 
@@ -883,8 +886,6 @@ notation M " ⊨[" w "] " φ => Model.satisfies M w φ
 notation M " ⊭[" w "] " φ => ¬ M ⊨[w] φ
 
 ```
-Thus `M ⊨[w] φ` says that `φ` is satisfied at `w`, while
-`M ⊭[w] φ` says that it is not satisfied there.
 
 Satisfaction extends to the other logical connectives based on their
 definitions. Note that these themselves are not definitions, but are theorems
@@ -949,7 +950,9 @@ $$`M \vDash^m φ \quad\text{iff}\quad \forall w, M \vDash_w φ`
 
 We use superscripts on the turnstile to make the level of the
 semantics explicit: `m` for models, `f` for frames, and `c` for
-classes of frames. Replacing `⊨` with `⊭` negates each relation.
+classes of frames. Replacing `⊨` with `⊭` negates each relation. While
+it is almost always clear from context which level of semantics is being
+referred to, we want to have our notation match our Lean notation.
 
 ```lean
 @[simp]
@@ -1080,7 +1083,7 @@ valuation assigning those same truth values agrees with satisfaction.
 $$`
 \begin{aligned}
 □⊤ & \\
-□(φ → ψ) → (□φ → □ψ) & \text{(the K axiom)} \\
+□(φ → ψ) → (□φ → □ψ) & \quad \text{(the K axiom)} \\
 ◇(φ → ψ) → (□φ → ◇ψ) & \\
 □(φ → ψ) → (◇φ → ◇ψ) & \\
 □(φ ∧ ψ) ↔ (□φ ∧ □ψ) & \\
@@ -1189,13 +1192,13 @@ providing a countermodel or counterframe. Some of these formulae are famous
 named axioms, which we will study in later chapters.
 $$`
 \begin{aligned}
-□φ → φ & \text{(the T axiom)} \\
-◇⊤ & \text{(variant of the D axiom)} \\
+□φ → φ & \quad\text{(the T axiom)} \\
+◇⊤ & \quad\text{(variant of the D axiom)} \\
 □(φ → ψ) → (□φ → ◇ψ) & \\
-◇φ → □φ & \text{(Brouwer's axiom / the 5 axiom)} \\
+◇φ → □φ & \quad\text{(Brouwer's axiom / the 5 axiom)} \\
 □(□φ → ψ) ∨ □(□ψ → □φ) &  \\
 □(φ ∨ ψ) → (□φ ∨ □ψ) & \\
-□(□φ → φ) → □φ & \text{(Löb's axiom)}
+□(□φ → φ) → □φ & \quad\text{(Löb's axiom)}
 \end{aligned}`
 
 :::details "Solutions"
@@ -1437,10 +1440,10 @@ example : ⊭ˢ (□ₜ(□ₜφ →ₜ φ) →ₜ □ₜφ) := by
 end Examples
 :::
 
-3) Show that $`◇⊤` and schema $`□φ → ◇φ` share the same models. i.e
-$`∀ M, (M ⊨ᵐ ◇⊤) ↔ (M ⊨ᵐˢ □φ → ◇φ)` {margin}[In other words, these are two
-different ways of expressing the same property of models, or as we will see later,
-equivalent ways of writing the D axiom.]
+3) Show that $`◇⊤` and schema $`□φ → ◇φ` share the same models. {margin}[In
+other words, these are two different ways of expressing the same property of
+models, or as we will see later, equivalent ways of writing the D axiom.] i.e
+$$`∀ M, (M ⊨ᵐ ◇⊤) ↔ (M ⊨ᵐˢ □φ → ◇φ)`
 
 :::details "Solution"
 ```lean
@@ -1523,13 +1526,15 @@ example : ∀ F : Frame, (F ⊨ᶠ φ) → (F ⊨ᶠ □ₜφ) := by
 
 # Ancestral and Descendant Worlds
 
+:::definition "Ancestral and Descendant Worlds"
 Given a frame $`F = (S, R)` and a world $`w \in S`, we define the
 reflexive transitive closure of $`R` as follows. We begin by defining the
 $`n`-step accessibility relation $`R^n` for each natural number $`n`.
 $$`
-R^0(w, v) \quad\text{iff}\quad w = v
-R^{n+1}(w, v) \quad\text{iff}\quad R(w, v) \vee \exists u, R(w, u) \wedge R^n(u, v)
-`
+\begin{aligned}
+R^0(w, v) &:= w = v \\
+R^{n+1}(w, v) &:= R(w, v) \vee \exists u, R(w, u) \wedge R^n(u, v) \\
+\end{aligned}`
 
 ```lean
 @[simp]
@@ -1537,14 +1542,18 @@ def Frame.R_n (F : Frame) : Nat → F.S → F.S → Prop
 | 0, w, v => w = v
 | n+1, w, v => F.R w v ∨ ∃ u, F.R w u ∧ Frame.R_n F n u v
 ```
+
 From this we define the reflexive transitive closure $`R^*` as existance
 of an $`n` such that $`R^n(w, v)` holds.
+$$`R^*(w, v) := \exists n, R^n(w, v)`
 
 ```lean
 @[simp]
 def Frame.R_Star (F : Frame) (w v : F.S) : Prop :=
   ∃ n, Frame.R_n F n w v
 ```
+:::
+
 
 ## Exercises
 
@@ -1559,6 +1568,8 @@ Show that if $`R \subseteq T`, then $`R^* \subseteq T`. i.e $`R^*` is the
 smallest reflexive and transitive relation on $`S` containing $`R`.
 5) If $`S = ℤ` and $`R = {(w, w+1) | w ∈ S}`, what is $`R^*`? Provide the
 relation `Q : ℤ → ℤ → Prop` and show that $`R^* = Q`.
+
+:::details "Solutions"
 
 ```lean
 theorem Frame.R_n.R_1_eq_R (F : Frame) (w v : F.S) : F.R_n 1 w v ↔ F.R w v := by
@@ -1581,7 +1592,7 @@ F.R_Star w u → F.R_Star u v → F.R_Star w v := by
   intro n H1 m H2
   sorry
 ```
-
+:::
 
 # Generated Submodels
 
@@ -1703,9 +1714,9 @@ A function $`f:S_1 → S_2` satisfying the following three
 conditions is called a _p-morphism_ from $`M_1` to $`M_2`.
 $$`
 \begin{aligned}
-R_1(s,t) &→ R_2(f(s), f(t)) \\
-R_2(f(s), u) &→ ∃t, R_1(s,t) ∧ f(t) = u \\
-V_1(p, s) \iff V_2(p, f(s))
+R_1(s,t) &\Rightarrow R_2(f(s), f(t)) \\
+R_2(f(s), u) &\Rightarrow ∃t, R_1(s,t) ∧ f(t) = u \\
+V_1(p, s) &\Leftrightarrow V_2(p, f(s))
 \end{aligned}
 `
 A function satisfying only the first two conditions is said to be
