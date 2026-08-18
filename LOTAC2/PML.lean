@@ -536,15 +536,32 @@ def L.isQuasiAtomic {Φ : Type} : L Φ → Prop
 | .atom _ => True
 | .box _ => True
 | _ => False
+
+--We have an algorithem for deciding whether a formula is quasi-atomic.
+instance {Φ : Type} [DecidableEq Φ] (φ : L Φ) :
+Decidable (φ.isQuasiAtomic) := by
+  cases φ <;> simp only [L.isQuasiAtomic] <;> infer_instance
 ```
 :::
+
+Some examples of quasi-atomic formulae are $`p`, $`□p`, and $`□(p → q)`. Some
+examples of formulae that are not quasi-atomic are $`p → q`, $`□p → q`, and
+$`□(p → q) → r`.
+```leanEval
+#eval "p"ᵃ.isQuasiAtomic --true
+#eval (□ₜ "p"ᵃ).isQuasiAtomic --true
+#eval (□ₜ("p"ᵃ →ₜ "q"ᵃ)).isQuasiAtomic --true
+#eval ("p" →ₜ "q").isQuasiAtomic --false
+#eval (□ₜ "p"ᵃ →ₜ "q"ᵃ ).isQuasiAtomic --false
+#eval (□ₜ("p"ᵃ →ₜ "q"ᵃ) →ₜ "r"ᵃ).isQuasiAtomic --false
+```
 
 :::definition "Quasi-atomic Subformulae Valuations"
 A Quasi-atomic subformula valuation is a valuation function that assigns
 true or false to each quasi-atomic subformula of a formula.
 
 ```lean
-abbrev QuasiAtomicSubformulaValuation (φ : L Φ) :=
+abbrev QuasiAtomicSubformulaValuation {Φ : Type} [DecidableEq Φ] (φ : L Φ) :=
   (ψ : L Φ) → ψ.isQuasiAtomic → ψ ∈ S[φ] → Prop
 
 ```
@@ -557,18 +574,18 @@ The following definitions provide this lifting.
 Given a quasi-atomic subformula valuation of an implication,
 return a valuation over subformulae of the left-hand side of the implication.
  -/
-def QuasiAtomicSubformulaValuation.left {φ ψ : L Φ}
-(V : QuasiAtomicSubformulaValuation Φ (φ →ₜ ψ)) :
-QuasiAtomicSubformulaValuation Φ φ :=
+def QuasiAtomicSubformulaValuation.left {Φ : Type} [DecidableEq Φ]
+{φ ψ : L Φ} (V : QuasiAtomicSubformulaValuation (φ →ₜ ψ)) :
+QuasiAtomicSubformulaValuation φ :=
   fun χ hqa hχ => V χ hqa (by
     simp only [L.subformulae, Finset.mem_union,
       Finset.mem_singleton]
     exact Or.inl (Or.inr hχ))
 
-def QuasiAtomicSubformulaValuation.right
+def QuasiAtomicSubformulaValuation.right {Φ : Type} [DecidableEq Φ]
 {φ ψ : L Φ}
-(V : QuasiAtomicSubformulaValuation Φ (φ →ₜ ψ)) :
-QuasiAtomicSubformulaValuation Φ ψ :=
+(V : QuasiAtomicSubformulaValuation (φ →ₜ ψ)) :
+QuasiAtomicSubformulaValuation ψ :=
   fun χ hqa hχ => V χ hqa (by
     simp only [L.subformulae, Finset.mem_union,
       Finset.mem_singleton]
@@ -578,19 +595,22 @@ With these we can then lift the valuation of quasi-atomic subformulae
 to a valuation of entire formula.
 ```lean
 @[simp]
-def LiftedQuasiAtomicValuation
- (φ : L Φ) (V : QuasiAtomicSubformulaValuation Φ φ) : Prop :=
+def LiftedQuasiAtomicValuation {Φ : Type} [DecidableEq Φ]
+ (φ : L Φ) (V : QuasiAtomicSubformulaValuation φ) : Prop :=
 match h: φ with
 | .atom p => V (.atom p)
   (by simp only [L.isQuasiAtomic])
   (by simp only [L.subformulae, Finset.mem_singleton])
 | .box φ => V (.box φ)
   (by simp only [L.isQuasiAtomic])
-  (by apply L.subformulae_mem_refl)
+  (by subst h ; simp_all only [L.subformulae,
+   Finset.singleton_union, Finset.mem_insert, true_or])
 | .bot => False
 | .imp φ ψ =>
-  (LiftedQuasiAtomicValuation φ V.left) →
-    (LiftedQuasiAtomicValuation ψ V.right)
+  (LiftedQuasiAtomicValuation φ V.left) → (LiftedQuasiAtomicValuation ψ V.right)
+
+notation "⟦" φ "⟧" V => LiftedQuasiAtomicValuation φ V
+
 ```
 :::
 
@@ -605,14 +625,38 @@ instead.
 ```lean
 @[simp]
 def L.isTautology (φ : L Φ) : Prop :=
-  ∀ V : QuasiAtomicSubformulaValuation Φ φ, LiftedQuasiAtomicValuation Φ φ V
+  ∀ V : QuasiAtomicSubformulaValuation φ, ⟦φ⟧ V
 ```
 :::
 
+## Properties of Tautologies and Quasi-atomic Formulae
 
-A consequence of this is that any tautology is a subsitution instance of
-a "box-free" tautology, i.e. a tautology in propositional logic.
+::: theorem "Congruence of Lifted Quasi-Atomic Valuations"
+ddd
+```lean
+lemma LiftedQuasiAtomicValuation.congr
+(φ : L Φ) (V W : QuasiAtomicSubformulaValuation φ)
+(H : ∀ B hqa hB hB', V B hqa hB = W B hqa hB') :
+((⟦φ⟧ V) ↔ (⟦φ⟧ W)) := by
+  induction φ with
+  | atom p => exact iff_of_eq (by apply_assumption)
+  | bot => simp only [LiftedQuasiAtomicValuation]
+  | box A => exact iff_of_eq (by apply_assumption)
+  | imp A B ihA ihB =>
+    simp only [LiftedQuasiAtomicValuation]
+    rw [ihA V.left W.left, ihB V.right W.right]
+    all_goals intros;
+    sorry
 
+```
+:::
+
+One class of formulae that will be particularly important for us are the
+"box-free" formulae, formulae that do not contain any boxed subformulae, i.e.
+formulae that are purely propositional.
+
+::: definition "Box-Free Formulae"
+A formula is box-free if it does not contain any boxed subformulae.
 ```lean
 @[simp]
 def L.boxFree : L Φ → Prop
@@ -621,8 +665,17 @@ def L.boxFree : L Φ → Prop
 | .imp φ ψ => φ.boxFree ∧ ψ.boxFree
 | .box _ => False
 ```
+:::
 
-The proof replaces every quasi-atomic part of $`φ`—each atom and each boxed
+From this we can show the following important result,
+that any tautology is a substitution instance of a box-free tautology.
+
+::: theorem "Box-Free Tautologies"
+
+Any tautology is a subsitution instance of
+a "box-free" tautology, i.e. a tautology in propositional logic.
+
+_Proof._ The proof replaces every quasi-atomic part of $`φ`—each atom and each boxed
 subformula—by a fresh atomic name. Because $`Φ` is denumerable, formulae can be
 encoded injectively as elements of $`Φ`; preserving $`⊥` and $`→` then produces
 a box-free formula $`ψ`.
@@ -647,19 +700,6 @@ theorem L.subst_boxFree_tautology
     (fun p V => V (.atom p)) (fun _ => False)
     (fun _ _ VA VB V => VA V → VB V)
     (fun A _ V => V (.box A))
-  have congr : ∀ (A : L Φ) V W,
-      (∀ B hq hB hB', V B hq hB = W B hq hB') →
-      (LiftedQuasiAtomicValuation Φ A V ↔
-        LiftedQuasiAtomicValuation Φ A W) := by
-    intro A; induction A with
-    | atom p => intros; exact iff_of_eq (by apply_assumption)
-    | bot => simp [LiftedQuasiAtomicValuation]
-    | box A => intros; exact iff_of_eq (by apply_assumption)
-    | imp A B ihA ihB =>
-        intro V W h
-        simp only [LiftedQuasiAtomicValuation]
-        rw [ihA V.left W.left, ihB V.right W.right]
-        all_goals intros; apply h
   have total : ∀ (A : L Φ) (V : L Φ → Prop),
       LiftedQuasiAtomicValuation Φ A (fun B _ _ => V B) ↔ eval A V := by
     intro A; induction A with
@@ -669,8 +709,10 @@ theorem L.subst_boxFree_tautology
     | imp A B ihA ihB =>
         intro V
         simp only [LiftedQuasiAtomicValuation, eval]
-        rw [congr A _ (fun C _ _ => V C),
-          congr B _ (fun C _ _ => V C), ihA, ihB]
+        rw [LiftedQuasiAtomicValuation.congr (Φ := Φ) A _
+            (fun C _ _ => V C),
+          LiftedQuasiAtomicValuation.congr (Φ := Φ) B _
+            (fun C _ _ => V C), ihA, ihB]
         all_goals intros; rfl
   have free : ∀ A, (erase A).boxFree := by
     intro A; induction A <;> simp_all [erase]
@@ -695,13 +737,15 @@ theorem L.subst_boxFree_tautology
         if hA : A ∈ (erase φ).subformulae then W A hqa hA
         else False
       else False
-    rw [congr _ W (fun A _ _ => V A)]
+    rw [LiftedQuasiAtomicValuation.congr
+      (Φ := Φ) _ W (fun A _ _ => V A)]
     · rw [total, rename, ← total]
       exact hφ (fun A _ _ => V (.atom (name A)))
     · intro A hqa hA hA'
       simp only [V, dif_pos hqa, dif_pos hA]
 ```
 
+:::
 
 # Frames and Models
 
@@ -1746,13 +1790,15 @@ abbrev PL (Φ : Type) [Denumerable Φ] : Set (L Φ) := { φ | φ.isTautology }
 instance PL.instLogic : Logic (PL Φ) where
   all_tauto := by exact id
   detachment := by
-    intro φ ψ h
-    aesop
-    induction φ generalizing ψ
-    . case atom p => sorry
-    . case bot => sorry
-    . case imp φ ψ ihφ ihψ => sorry
-    . case box φ ih => sorry
+    rintro φ ψ ⟨hφ, hφψ⟩ Vψ
+    let V : QuasiAtomicSubformulaValuation Φ (φ →ₜ ψ) :=
+      fun χ hqa _ =>
+        if hχ : χ ∈ S[ψ] then Vψ χ hqa hχ else False
+    have h := hφψ V (hφ V.left)
+    apply (LiftedQuasiAtomicValuation.congr
+      (Φ := Φ) ψ V.right Vψ ?_).mp h
+    intro χ hqa hχ hχ'
+    simp [V, QuasiAtomicSubformulaValuation.right, hχ']
 
 theorem Logic.intersection [Denumerable Φ] (Λ : I → Set (L Φ))
 [∀ i, Logic (Λ i)] :
@@ -1772,8 +1818,7 @@ $`Γ`$ is the intersection of all logics containing $`Γ`$.
 From this, we note that PL is the smallest logic, and FBA is the largest,
 in the sense that any logic $`Λ` satisfies $`PL ⊆ Λ ⊆ FBA`.
 ```lean
-lemma Logic.PL_subset [Denumerable Φ] (Λ : Set (L Φ)) [Logic Λ] : PL ⊆ Λ := by
-  intro φ h
+lemma Logic.PL_subset (Λ : Set (L Φ)) [Logic Λ] : (PL Φ) ⊆ Λ := by
   sorry
 
 ```
