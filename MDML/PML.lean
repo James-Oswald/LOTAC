@@ -1870,7 +1870,7 @@ Some examples of logics are
 1) The set of all tautologies, which we call $`PL`.
 2) For any class of frames $`C`, the set of all formulae valid in
    all frames in $`C` i.e the set $`\{ φ | ∀ F ∈ C, F ⊨ᶠ φ \}`
-3) The set of all formulae itself.
+3) The set of all formulae $`Fma(Φ)` itself.
 4) The intersection of any collection of logics $`\{Λ_i | i ∈ I\}`.
   $$`\bigcap_{i ∈ I} Λ_i`
 
@@ -1896,14 +1896,29 @@ instance (C : Set Frame) : Logic { φ : L Φ | ∀ F ∈ C, F ⊨ᶠ φ } where
   all_tauto := by
     intros φ Hφ F HF
     sorry
-
   detachment := by sorry
 
+instance : Logic (Fma Φ) where
+  all_tauto := by
+    intro φ a
+    simp_all only [L.isTautology, Set.mem_univ]
+  detachment := by
+    rintro φ ψ ⟨hφ, hφψ⟩
+    simp_all only [Set.mem_univ]
 
-theorem Logic.intersection [Denumerable Φ] (Λ : I → Set (L Φ))
-[∀ i, Logic (Λ i)] :
-  Logic (⋂ i, Λ i) := by
-  sorry
+instance Logic.intersection {ι : Type} (Λ : ι → Set (L Φ))
+[H : ∀ i, Logic (Λ i)] : Logic (⋂ i, Λ i) where
+  all_tauto := by
+    intro φ hφ
+    apply Set.mem_iInter.mpr
+    intro i
+    exact (H i).all_tauto hφ
+  detachment := by
+    rintro φ ψ ⟨hφ, hφψ⟩
+    simp_all only [Set.mem_iInter]
+    intro i
+    apply (H i).detachment
+    exact ⟨hφ i, hφψ i⟩
 ```
 
 Since the intersection of any collection of logics is itself a logic, we can
