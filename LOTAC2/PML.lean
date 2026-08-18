@@ -10,7 +10,7 @@ set_option pp.rawOnError true
 
 #doc (Manual) "Propositional Modal Logic" =>
 
-# The Language of Modal Formulae
+# The Language of Propositional Modal Formula
 
 :::definition "Modal formulas"
 Let $`Φ` be a denumerable {margin}[`Denumerable` just meaning it has a
@@ -248,12 +248,13 @@ and $`σ(q) := q ∨ r` replaces the atomic formula $`p` with $`□p` and
 the atomic formula $`q` with $`q ∨ r`. The result of applying this uniform
 substitution to the schema $`□(A → A)` is the formula $`□(□p → □p)`.
 
-:::definition "Uniform Substitutions"
+:::definition "Uniform Substitutions and Substitution Instances"
 A uniform substitution is a function $`σ : Φ → Fma(Φ)` that replaces
 atomic formulae with arbitrary formulae. The result of applying a uniform
 substitution $`σ` to a formula $`φ` is denoted by $`φ /ₛ σ` and is defined
 inductively as follows:
 ```lean
+@[simp]
 def L.subst {Φ : Type} [DecidableEq Φ] (φ : L Φ) (σ : Φ → L Φ) : L Φ :=
 match φ with
 | L.atom p => σ p
@@ -266,13 +267,17 @@ infixl:100 "/ₛ" => L.subst
 Note that this definition is *simultaneous*, meaning that all atomic formulae
 are replaced at once, rather than sequentially.
 
-A formula $`φ'` is said to be a substitution instance of a formula $`φ` if it
-can be obtained by simultaineously substituting some of the atomic formulae
-in $`φ` with arbitrary formulae. In otherwords, $`φ'` is a substitution instance
-of $`φ` if there exists a uniform substitution $`σ` such that $`φ' = σ(φ)`.
+A formula $`φ'` is said to be a substitution instance of a formula $`φ`,
+written $`φ' ≼ₛ φ` if it can be obtained by simultaineously substituting
+some of the atomic formulae in $`φ` with arbitrary formulae. In otherwords,
+$`φ'` is a substitution instance of $`φ` if there exists a uniform substitution
+$`σ` such that $`φ' = σ(φ)`.
+$$`φ' ≼ₛ φ := ∃ σ, φ' = φ /ₛ σ`
 ```lean
+@[simp]
 def L.isSubstInstance {Φ : Type} [DecidableEq Φ] (φ' φ : L Φ) : Prop :=
   ∃ σ : Φ → L Φ, φ' = φ /ₛ σ
+infix:50 " ≼ₛ " => L.isSubstInstance
 ```
 :::
 With this we can define a schema as the set of all substitution instances
@@ -283,13 +288,20 @@ of $`φ`, denoted by $`\operatorname{Schema}(φ)`.
 ```lean
 
 def L.schema {Φ : Type} [DecidableEq Φ] (φ : L Φ) : Set (L Φ) :=
-  {φ' | L.isSubstInstance φ' φ}
-
-```
-In lean we denote a schema with the notation "\[φ\]ₛ" where
-$`φ` is the formula that generates the schema.
-```lean
+  {φ' | φ' ≼ₛ φ}
 notation "[" A "]ₛ" => L.schema A
+```
+:::
+
+## Properties
+
+```lean
+
+@[simp]
+theorem L.mem_schema_iff_is_subst_instance
+{Φ : Type} [DecidableEq Φ] {φ' φ : L Φ} :
+φ' ∈ [φ]ₛ ↔ φ' ≼ₛ φ := by
+  rfl
 
 theorem L.mem_schema_self {Ψ : Type} [DecidableEq Ψ] (φ : L Ψ) :
 φ ∈ [φ]ₛ := by
@@ -301,8 +313,13 @@ theorem L.mem_schema_self {Ψ : Type} [DecidableEq Ψ] (φ : L Ψ) :
       exact congrArg₂ L.imp ih₁ ih₂
   | box φ₁ ih =>
       exact congrArg L.box ih
+
+theorem L.subst_instance_of_self {Φ : Type} [DecidableEq Φ] (φ : L Φ) :
+φ ≼ₛ φ :=
+  L.mem_schema_iff_is_subst_instance.mp (L.mem_schema_self φ)
+
+
 ```
-:::
 
 ## Decidability of Schema Membership
 
@@ -466,7 +483,7 @@ whether $`A'` is a substitution instance of $`A`.
 
 ```lean
 instance {Φ : Type} [DecidableEq Φ] (A' A : L Φ) :
-    Decidable (L.isSubstInstance A' A) := by
+Decidable (A' ≼ₛ A) := by
   let empty : L.SubstMap Φ := fun _ => none
   match h : L.matchSubst A A' empty with
   | some τ =>
@@ -491,8 +508,8 @@ For example, replacing $`p` uniformly by $`q` succeeds, whereas replacing its
 two occurrences by different formulae does not.
 
 ```leanEval
-#eval decide (L.isSubstInstance ("q" →ₜ "q") ("p" →ₜ "p"))
-#eval decide (L.isSubstInstance ("q" →ₜ "r") ("p" →ₜ "p"))
+#eval decide (("q" →ₜ "q") ≼ₛ ("p" →ₜ "p"))
+#eval decide (("q" →ₜ "r") ≼ₛ ("p" →ₜ "p"))
 ```
 
 We thus have membership in a schema is decidable, since $`A'` is a
@@ -500,7 +517,7 @@ substitution instance of $`A` if and only if the matcher succeeds.
 ```lean
 instance {Φ : Type} [DecidableEq Φ] (A' A : L Φ) :
     Decidable (A' ∈ [A]ₛ) := by
-  change Decidable (L.isSubstInstance A' A)
+  change Decidable (A' ≼ₛ A)
   infer_instance
 ```
 
@@ -625,8 +642,9 @@ its propositional variables, except now we consider quasi-atomic subformulae
 instead.
 ```lean
 @[simp]
-def L.isTautology (φ : L Φ) : Prop :=
+def L.isTautology {Φ : Type} [DecidableEq Φ] (φ : L Φ) : Prop :=
   ∀ V : QuasiAtomicSubformulaValuation φ, ⟦φ⟧ V
+prefix:max "⊢ₜ " => L.isTautology
 ```
 :::
 
@@ -659,15 +677,20 @@ One class of formulae that will be particularly important for us are the
 "box-free" formulae, formulae that do not contain any boxed subformulae, i.e.
 formulae that are purely propositional.
 
-::: definition "Box-Free Formulae"
+::: definition "Box-Free Formulae and Propositional Tautologies"
 A formula is box-free if it does not contain any boxed subformulae.
 ```lean
 @[simp]
-def L.boxFree : L Φ → Prop
+def L.boxFree {Φ : Type} : L Φ → Prop
 | .atom _ => True
 | .bot => True
 | .imp φ ψ => φ.boxFree ∧ ψ.boxFree
 | .box _ => False
+
+@[simp]
+def L.isPropTautology {Φ : Type} [DecidableEq Φ] (φ : L Φ) : Prop :=
+  (⊢ₜ φ) ∧ φ.boxFree
+prefix:max "⊢ₚ " => L.isPropTautology
 ```
 :::
 
@@ -691,9 +714,9 @@ tautologicity of $`φ` implies that of $`ψ`. Finally, substituting each fresh
 name by the quasi-atomic formula it encodes reconstructs $`φ`, making $`φ` a
 substitution instance of $`ψ`.
 ```lean
-theorem L.subst_boxFree_tautology
-(φ : L Φ) (hφ : φ.isTautology) :
-∃ (ψ : L Φ), ψ.boxFree ∧ ψ.isTautology ∧ φ.isSubstInstance ψ := by
+theorem L.subst_boxFree_tautology {Φ : Type} [Denumerable Φ]
+(φ : L Φ) (hφ : ⊢ₜ φ) :
+∃ (ψ : L Φ), (⊢ₚ ψ) ∧ φ ≼ₛ ψ := by
   classical
   let name (A : L Φ) := Denumerable.ofNat Φ (Encodable.encode A)
   let erase : L Φ → L Φ := L.rec
@@ -734,7 +757,7 @@ theorem L.subst_boxFree_tautology
         exact ⟨ihA, ihB⟩
     | box A =>
         simp [erase, name, L.subst, Denumerable.encode_ofNat]
-  refine ⟨erase φ, free φ, ?_, ⟨_, subst φ⟩⟩
+  refine ⟨erase φ, ⟨?_, free φ⟩, ⟨_, subst φ⟩⟩
   · intro W
     let V : L Φ → Prop := fun A =>
       if hqa : A.isQuasiAtomic then
@@ -1044,7 +1067,14 @@ theorem schema_not_valid_of_not_valid
   exact ⟨M, Γ, L.mem_schema_self Γ, hM⟩
 ```
 
-*Exercises*
+## Properties
+
+The lifted quasi-atomic valuation induced by truth at a world agrees
+with satisfaction at that world. More generally, any quasi-atomic
+valuation assigning those same truth values agrees with satisfaction.
+
+
+## Exercises
 
 1) Show that the following schema are true in all models.
 $$`
@@ -1070,8 +1100,8 @@ variable [Denumerable Φ]
 
 local notation "φ₀" => Denumerable.ofNat Φ 0
 local notation "ψ₀" => Denumerable.ofNat Φ 1
-local notation "φ" => L.atom φ₀
-local notation "ψ" => L.atom ψ₀
+scoped[ExampleFormulas] notation "φ" => L.atom φ₀
+scoped[ExampleFormulas] notation "ψ" => L.atom ψ₀
 
 example : ⊨ˢ (□ₜ⊤ₜ : L Φ) := by
   intro M χ hχ
@@ -1079,12 +1109,14 @@ example : ⊨ˢ (□ₜ⊤ₜ : L Φ) := by
   intro w v _ h2
   exact h2
 
+open scoped ExampleFormulas in
 example : ⊨ˢ (□ₜ(φ →ₜ ψ) →ₜ (□ₜφ →ₜ □ₜψ)) := by
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
   intro w hbox hφ v hv
   exact hbox v hv (hφ v hv)
 
+open scoped ExampleFormulas in
 example : ⊨ˢ (◇ₜ(φ →ₜ ψ) →ₜ (□ₜφ →ₜ ◇ₜψ)) := by
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
@@ -1092,6 +1124,7 @@ example : ⊨ˢ (◇ₜ(φ →ₜ ψ) →ₜ (□ₜφ →ₜ ◇ₜψ)) := by
   rcases (M.satisfies_dia w _).mp hdia with ⟨v, hv, himp⟩
   exact (M.satisfies_dia w _).mpr ⟨v, hv, himp (hbox v hv)⟩
 
+open scoped ExampleFormulas in
 example : ⊨ˢ (□ₜ(φ →ₜ ψ) →ₜ (◇ₜφ →ₜ ◇ₜψ)) := by
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
@@ -1099,6 +1132,7 @@ example : ⊨ˢ (□ₜ(φ →ₜ ψ) →ₜ (◇ₜφ →ₜ ◇ₜψ)) := by
   rcases (M.satisfies_dia w _).mp hdia with ⟨v, hv, hφ⟩
   exact (M.satisfies_dia w _).mpr ⟨v, hv, hbox v hv hφ⟩
 
+open scoped ExampleFormulas in
 example : ⊨ˢ (□ₜ(φ ∧ₜ ψ) ↔ₜ (□ₜφ ∧ₜ □ₜψ)) := by
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
@@ -1116,6 +1150,7 @@ example : ⊨ˢ (□ₜ(φ ∧ₜ ψ) ↔ₜ (□ₜφ ∧ₜ □ₜψ)) := by
     exact (M.satisfies_and v _ _).mpr
       ⟨h.left v hv, h.right v hv⟩
 
+open scoped ExampleFormulas in
 example : ⊨ˢ (◇ₜ(φ ∨ₜ ψ) ↔ₜ (◇ₜφ ∨ₜ ◇ₜψ)) := by
   intro M χ hχ
   rcases hχ with ⟨σ, rfl⟩
@@ -1192,6 +1227,7 @@ Model.diagram (deadEndCountermodel (Φ := Nat))
 ```
 
 ```lean
+open scoped ExampleFormulas in
 example : ⊭ˢ (□ₜφ →ₜ φ) := by
   apply schema_not_valid_of_not_valid
   apply not_valid_iff_countermodel.mpr
@@ -1228,6 +1264,7 @@ Model.diagram (deadEndCountermodel (Φ := Nat))
 ```
 
 ```lean
+open scoped ExampleFormulas in
 example : ⊭ˢ (□ₜ(φ →ₜ ψ) →ₜ (□ₜφ →ₜ ◇ₜψ)) := by
   apply schema_not_valid_of_not_valid
   apply not_valid_iff_countermodel.mpr
@@ -1258,6 +1295,7 @@ Model.diagram (branchCountermodel (Φ := Nat) 0)
 ```
 
 ```lean
+open scoped ExampleFormulas in
 example : ⊭ˢ (◇ₜφ →ₜ □ₜφ) := by
   apply schema_not_valid_of_not_valid
   apply not_valid_iff_countermodel.mpr
@@ -1291,6 +1329,7 @@ Model.diagram (fourWorldCountermodel (Φ := Nat) 1)
 ```
 
 ```lean
+open scoped ExampleFormulas in
 example : ⊭ˢ (□ₜ(□ₜφ →ₜ ψ) ∨ₜ □ₜ(□ₜψ →ₜ □ₜφ)) := by
   apply schema_not_valid_of_not_valid
   apply not_valid_iff_countermodel.mpr
@@ -1337,6 +1376,7 @@ Model.diagram (splitCountermodel (Φ := Nat) 0 1)
 ```
 
 ```lean
+open scoped ExampleFormulas in
 example : ⊭ˢ (□ₜ(φ ∨ₜ ψ) →ₜ (□ₜφ ∨ₜ □ₜψ)) := by
   apply schema_not_valid_of_not_valid
   apply not_valid_iff_countermodel.mpr
@@ -1379,6 +1419,7 @@ Model.diagram (reflexiveCountermodel (Φ := Nat))
 ```
 
 ```lean
+open scoped ExampleFormulas in
 example : ⊭ˢ (□ₜ(□ₜφ →ₜ φ) →ₜ □ₜφ) := by
   apply schema_not_valid_of_not_valid
   apply not_valid_iff_countermodel.mpr
@@ -1416,41 +1457,45 @@ example : ∃ F, F ⊨ᶠ (□ₜ⊥ₜ : L Φ) := by
 ```
 :::
 
+## Properties of Valuation
+
+:::theorem "Model.valuation_agrees"
+
+
+```lean
+theorem Model.valuation_agrees (M : @Model Φ) (w : M.S) (A : L Φ)
+(V : QuasiAtomicSubformulaValuation A)
+(hV : ∀ B hqa hB, V B hqa hB = (M ⊨[w] B)) :
+((⟦A⟧ V) ↔ M ⊨[w] A) := by
+  induction A with
+  | atom p =>
+      exact iff_of_eq (hV (L.atom p) (by simp) (by simp))
+  | bot => rfl
+  | box A =>
+      exact iff_of_eq (hV (L.box A) (by simp) (by simp))
+  | imp A B ihA ihB =>
+      simp only [LiftedQuasiAtomicValuation,
+        Model.satisfies]
+      rw [ihA V.left, ihB V.right]
+      · intro C hqa hC
+        exact hV C hqa (by simp [hC])
+      · intro C hqa hC
+        exact hV C hqa (by simp [hC])
+```
+:::
+
 5) Show the following. (1) If a formula is a tautology, it holds in any model
 (i.e. it is valid, $`M ⊨ᵐ φ` for all $`M`) . (2) If $`M ⊨ᵐ φ → ψ` and $`M ⊨ᵐ φ`
 then $`M ⊨ᵐ ψ`. (3) if $`M ⊨ᵐ φ` then $`M ⊨ᵐ □φ`.
 ```lean
-theorem tautology_holds_in_all_models {«φ» : L Φ} :
-«φ».isTautology → ∀ M, (M ⊨ᵐ «φ») := by
+theorem tautology_holds_in_all_models {φ : L Φ} :
+φ.isTautology → ∀ M, (M ⊨ᵐ φ) := by
+  classical
   intro hφ M w
-  let V : QuasiAtomicSubformulaValuation «φ» :=
-    fun B _ _ => M ⊨[w] B
+  let V : QuasiAtomicSubformulaValuation φ := λ B _ _ => M ⊨[w] B
   have hV := hφ V
-  have valuation_agrees : ∀ (B : L Φ)
-      (W : QuasiAtomicSubformulaValuation B),
-      (∀ C hqa hC, W C hqa hC = (M ⊨[w] C)) →
-      ((⟦B⟧ W) ↔ M ⊨[w] B) := by
-    intro B
-    induction B with
-    | atom p =>
-        intro W hW
-        exact iff_of_eq (hW (L.atom p) (by simp) (by simp))
-    | bot =>
-        intro W _
-        rfl
-    | box B =>
-        intro W hW
-        exact iff_of_eq (hW (L.box B) (by simp) (by simp))
-    | imp B C ihB ihC =>
-        intro W hW
-        simp only [LiftedQuasiAtomicValuation,
-          Model.satisfies]
-        rw [ihB W.left, ihC W.right]
-        · intro D hqa hD
-          exact hW D hqa (by simp [hD])
-        · intro D hqa hD
-          exact hW D hqa (by simp [hD])
-  exact (valuation_agrees «φ» V (by intros; rfl)).mp hV
+  exact (M.valuation_agrees w φ V
+    (by intros; rfl)).mp hV
 
 example : ∀ M : @Model Φ, (M ⊨ᵐ (φ →ₜ ψ)) ∧ (M ⊨ᵐ φ) → (M ⊨ᵐ ψ) := by
   sorry
@@ -1819,9 +1864,9 @@ Some examples of logics are
   $$`\bigcap_{i ∈ I} Λ_i`
 
 ```lean
-variable [Denumerable Φ]
 
-abbrev PL (Φ : Type) [Denumerable Φ] : Set (L Φ) := { φ | φ.isTautology }
+
+abbrev PL (Φ : Type) [Denumerable Φ] : Set (L Φ) := { φ | ⊢ₜ φ }
 
 instance PL.instLogic : Logic (PL Φ) where
   all_tauto := by exact id
@@ -1839,7 +1884,7 @@ instance PL.instLogic : Logic (PL Φ) where
 instance (C : Set Frame) : Logic { φ : L Φ | ∀ F ∈ C, F ⊨ᶠ φ } where
   all_tauto := by
     intros φ Hφ F HF
-    aesop
+    sorry
 
   detachment := by sorry
 
