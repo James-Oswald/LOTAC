@@ -592,7 +592,8 @@ QuasiAtomicSubformulaValuation ψ :=
     exact Or.inr hχ)
 ```
 With these we can then lift the valuation of quasi-atomic subformulae
-to a valuation of entire formula.
+to a valuation of entire formula. We write this using the notation $`⟦φ⟧_v`
+where V is a quasi-atomic subformula valuation.
 ```lean
 @[simp]
 def LiftedQuasiAtomicValuation {Φ : Type} [DecidableEq Φ]
@@ -632,7 +633,10 @@ def L.isTautology (φ : L Φ) : Prop :=
 ## Properties of Tautologies and Quasi-atomic Formulae
 
 ::: theorem "Congruence of Lifted Quasi-Atomic Valuations"
-ddd
+If two quasi-atomic subformula valuations $`V` and $`W` agree on all
+quasi-atomic subformulae  of a formula φ, then their lifted valuations
+are equivalent.
+$$`⟦φ⟧_V ↔ ⟦φ⟧_W`$$
 ```lean
 lemma LiftedQuasiAtomicValuation.congr
 (φ : L Φ) (V W : QuasiAtomicSubformulaValuation φ)
@@ -646,8 +650,8 @@ lemma LiftedQuasiAtomicValuation.congr
     simp only [LiftedQuasiAtomicValuation]
     rw [ihA V.left W.left, ihB V.right W.right]
     all_goals intros;
-    sorry
-
+    exact H _ _ _ _
+    exact H _ _ _ _
 ```
 :::
 
@@ -701,7 +705,7 @@ theorem L.subst_boxFree_tautology
     (fun _ _ VA VB V => VA V → VB V)
     (fun A _ V => V (.box A))
   have total : ∀ (A : L Φ) (V : L Φ → Prop),
-      LiftedQuasiAtomicValuation Φ A (fun B _ _ => V B) ↔ eval A V := by
+      LiftedQuasiAtomicValuation A (fun B _ _ => V B) ↔ eval A V := by
     intro A; induction A with
     | atom p => intro V; rfl
     | bot => intro V; rfl
@@ -1388,6 +1392,8 @@ example : ⊭ˢ (□ₜ(□ₜφ →ₜ φ) →ₜ □ₜφ) := by
     exact hpBox 0 trivial
   exact h hAntecedent 0 trivial
 ```
+
+end Examples
 :::
 
 3) Show that $`◇⊤` and schema $`□φ → ◇φ` share the same models. i.e
@@ -1414,8 +1420,37 @@ example : ∃ F, F ⊨ᶠ (□ₜ⊥ₜ : L Φ) := by
 (i.e. it is valid, $`M ⊨ᵐ φ` for all $`M`) . (2) If $`M ⊨ᵐ φ → ψ` and $`M ⊨ᵐ φ`
 then $`M ⊨ᵐ ψ`. (3) if $`M ⊨ᵐ φ` then $`M ⊨ᵐ □φ`.
 ```lean
-example : ∀ M : @Model Φ, (⊨ φ) → (M ⊨ᵐ φ) := by
-  sorry
+theorem tautology_holds_in_all_models {«φ» : L Φ} :
+«φ».isTautology → ∀ M, (M ⊨ᵐ «φ») := by
+  intro hφ M w
+  let V : QuasiAtomicSubformulaValuation «φ» :=
+    fun B _ _ => M ⊨[w] B
+  have hV := hφ V
+  have valuation_agrees : ∀ (B : L Φ)
+      (W : QuasiAtomicSubformulaValuation B),
+      (∀ C hqa hC, W C hqa hC = (M ⊨[w] C)) →
+      ((⟦B⟧ W) ↔ M ⊨[w] B) := by
+    intro B
+    induction B with
+    | atom p =>
+        intro W hW
+        exact iff_of_eq (hW (L.atom p) (by simp) (by simp))
+    | bot =>
+        intro W _
+        rfl
+    | box B =>
+        intro W hW
+        exact iff_of_eq (hW (L.box B) (by simp) (by simp))
+    | imp B C ihB ihC =>
+        intro W hW
+        simp only [LiftedQuasiAtomicValuation,
+          Model.satisfies]
+        rw [ihB W.left, ihC W.right]
+        · intro D hqa hD
+          exact hW D hqa (by simp [hD])
+        · intro D hqa hD
+          exact hW D hqa (by simp [hD])
+  exact (valuation_agrees «φ» V (by intros; rfl)).mp hV
 
 example : ∀ M : @Model Φ, (M ⊨ᵐ (φ →ₜ ψ)) ∧ (M ⊨ᵐ φ) → (M ⊨ᵐ ψ) := by
   sorry
@@ -1438,7 +1473,7 @@ example : ∀ F : Frame, (F ⊨ᶠ (φ →ₜ ψ)) ∧ (F ⊨ᶠ φ) → (F ⊨�
 example : ∀ F : Frame, (F ⊨ᶠ φ) → (F ⊨ᶠ □ₜφ) := by
   sorry
 
-end Examples
+
 ```
 
 # Ancestral and Descendant Worlds
@@ -1777,7 +1812,8 @@ class Logic [Denumerable Φ] (Λ : Set (L Φ)) : Prop where
 
 Some examples of logics are
 1) The set of all tautologies, which we call $`PL`.
-2) For any class of frames $`C`, the set of all formulae valid in all frames in $`C`
+2) For any class of frames $`C`, the set of all formulae valid in
+   all frames in $`C` i.e the set $`\{ φ | ∀ F ∈ C, F ⊨ᶠ φ \}`
 3) The set of all formulae itself.
 4) The intersection of any collection of logics $`\{Λ_i | i ∈ I\}`.
   $$`\bigcap_{i ∈ I} Λ_i`
@@ -1791,14 +1827,22 @@ instance PL.instLogic : Logic (PL Φ) where
   all_tauto := by exact id
   detachment := by
     rintro φ ψ ⟨hφ, hφψ⟩ Vψ
-    let V : QuasiAtomicSubformulaValuation Φ (φ →ₜ ψ) :=
-      fun χ hqa _ =>
-        if hχ : χ ∈ S[ψ] then Vψ χ hqa hχ else False
+    let V : QuasiAtomicSubformulaValuation (φ →ₜ ψ) :=
+      fun χ hqa _ => if hχ : χ ∈ S[ψ] then Vψ χ hqa hχ else False
     have h := hφψ V (hφ V.left)
-    apply (LiftedQuasiAtomicValuation.congr
-      (Φ := Φ) ψ V.right Vψ ?_).mp h
+    apply (LiftedQuasiAtomicValuation.congr (Φ := Φ) ψ V.right Vψ ?_).mp h
     intro χ hqa hχ hχ'
-    simp [V, QuasiAtomicSubformulaValuation.right, hχ']
+    simp only [QuasiAtomicSubformulaValuation.right, L.isQuasiAtomic,
+      L.subformulae, Finset.singleton_union, dite_else_false, hχ',
+      exists_true_left, V]
+
+instance (C : Set Frame) : Logic { φ : L Φ | ∀ F ∈ C, F ⊨ᶠ φ } where
+  all_tauto := by
+    intros φ Hφ F HF
+    aesop
+
+  detachment := by sorry
+
 
 theorem Logic.intersection [Denumerable Φ] (Λ : I → Set (L Φ))
 [∀ i, Logic (Λ i)] :
