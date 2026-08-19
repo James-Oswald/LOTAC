@@ -50,7 +50,7 @@ of trying to line up our Lean notation with our mathematical notation. To make i
 clear when we are using a letter as part of a notation, we will have the
 letter appear in monospaced font as can be seen above. When a letter is not
 in monospaced font, it can be assumed to be a variable, for example evaluation
-of a formula $`φ` under a quasi-atomic valuation $`v`is written $`⟦φ⟧_v`. $`v` is
+of a formula $`φ` under a quasi-atomic valuation $`v` is written $`⟦φ⟧_v`. $`v` is
 a variable here representing the valuation.
 
 For readers worried about notation chasing, we have done our best to make it
