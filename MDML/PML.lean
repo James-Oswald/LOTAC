@@ -205,7 +205,8 @@ def L.subformulae {Φ : Type} [DecidableEq Φ] : L Φ → Finset (L Φ)
 | L.imp A B => {L.imp A B} ∪ L.subformulae A ∪ L.subformulae B
 | L.box A => {L.box A} ∪ L.subformulae A
 ```
-We use a prefix S to denote the set of subformulae of a formula, so that $`S[A]`
+We use a prefix $`\texttt{S}` to denote the set of subformulae of a formula,
+so that $`\texttt{S}[A]`
 is the set of all subformulae of $`A`.
 ```lean
 notation "S[" A "]" => L.subformulae A
@@ -598,8 +599,8 @@ abbrev QuasiAtomicSubformulaValuation {Φ : Type}
   (ψ : L Φ) → ψ.isQuasiAtomic → ψ ∈ S[φ] → Prop
 
 ```
-Given a quasi-atomic valuation `V`, we can extend it to a valuation of
-an arbitrary formula `φ`. To do this, we need to be able to lift
+Given a quasi-atomic valuation $`V`, we can extend it to a valuation of
+an arbitrary formula $`φ`. To do this, we need to be able to lift
 valuations on implications to valuations on their left and right subformulae.
 The following definitions provide this lifting.
 ```lean
@@ -626,7 +627,7 @@ QuasiAtomicSubformulaValuation ψ :=
 ```
 With these we can then lift the valuation of quasi-atomic subformulae
 to a valuation of entire formula. We write this using the notation $`⟦φ⟧_v`
-where V is a quasi-atomic subformula valuation.
+where $`V` is a quasi-atomic subformula valuation.
 ```lean
 @[simp]
 def LiftedQuasiAtomicValuation {Φ : Type} [DecidableEq Φ]
@@ -650,8 +651,8 @@ notation "⟦" φ "⟧" V => LiftedQuasiAtomicValuation φ V
 
 :::definition "Tautologies"
 We define the notion of tautology in terms of quasi-atomic subformulae.
-We say a formula φ is a tautology, written $`⊢_\texttt{t} φ` if its lifted valuation
-is true for every valuation of its quasi-atomic subformula.
+We say a formula $`φ` is a tautology, written $`⊢_\texttt{t} φ` if its lifted
+valuation is true for every valuation of its quasi-atomic subformula.
 $$` ⊢_\texttt{t} φ := ∀ V, ⟦φ⟧ V`
 This idea naturally coresponds to the notion of tautology in propositional
 logic, where a formula is a tautology if it is true under every assignment of
@@ -801,7 +802,7 @@ theorem L.subst_boxFree_tautology {Φ : Type} [Denumerable Φ]
 
 :::definition "Frames and Models"
 
-A frame is a pair $`(S, R)` where `S` is a non-empty set of worlds and $R$ is
+A frame is a pair $`(S, R)` where $`S` is a non-empty set of worlds and $`R` is
 a binary relation on $`S` called the accessibility relation.
 
 ```lean
@@ -814,7 +815,7 @@ structure Frame where
   R : S → S → Prop
 ```
 
-A $`Φ`-model is a pair $`(F, V)` where `F` is a frame and `V` is a _valuation
+A $`Φ`-model is a pair $`(F, V)` where $`F` is a frame and $`V` is a _valuation
 function_ that assigns worlds and propositional variables to truth values.
 I.e a propositional variable $`p` holds at a world $`w` if and only if
 $`V(p,w)`.
@@ -882,8 +883,8 @@ def Model.diagram (M : @Model Φ) [FinEnum M.S] [Denumerable Φ]
 :::
 
 :::definition "Satisfaction in a Model"
-Let $`M = (S, R, V)` be a Φ-model and let $`w` be a world in `S`.
-We define the satisfaction relation $`M \vDash_w φ` for a formula `φ`
+Let $`M = (S, R, V)` be a $`Φ`-model and let $`w` be a world in $`S`.
+We define the satisfaction relation $`M \vDash_w φ` for a formula $`φ`
 inductively as follows.
 $$`
 \begin{aligned}
@@ -965,7 +966,8 @@ theorem Model.satisfies_dia (M : @Model Φ) (w : M.S) (φ : L Φ) :
 
 :::definition "Truth and Validity"
 
-A formula φ is true in a model M if it is satisfied at every world in M.
+A formula $`φ` is true in a model $`M` if it is satisfied at every world in
+$`M`.
 $$`M \vDash^\texttt{m} φ \quad\text{iff}\quad \forall w, M \vDash_w φ`
 
 We use superscripts on the turnstile to make the level of the
@@ -983,7 +985,8 @@ infixl:51 " ⊨ᵐ " => L.true_in_model
 notation M " ⊭ᵐ " φ => ¬ L.true_in_model M φ
 ```
 
-A formula φ is valid in a frame F if it is true in every model based on F.
+A formula $`φ` is valid in a frame $`F` if it is true in every model based on
+$`F`.
 $$`F \vDash^\texttt{f} φ := ∀ V, (F, V) \vDash^\texttt{m} φ`
 ```lean
 @[simp]
@@ -994,7 +997,8 @@ infixl:51 " ⊨ᶠ " => L.valid_in_frame
 notation F " ⊭ᶠ " φ => ¬ L.valid_in_frame F φ
 ```
 
-A formula φ is valid in a class of frames C if it is valid in every frame in C.
+A formula $`φ` is valid in a class of frames $`C` if it is valid in every frame
+in $`C`.
 $$`C \vDash^\texttt{c} φ := ∀ F ∈ C, F \vDash^\texttt{f} φ`
 In Lean we represent a class as a set of frames.
 ```lean
@@ -1114,9 +1118,9 @@ $$`
 \end{aligned}`
 
 :::details "Solutions"
-The denumerability of `Φ` gives us an enumeration of its atoms.
-We call its first two atoms `φ` and `ψ`. After choosing an arbitrary
-instance of a schema, its substitution `σ` turns these placeholders
+The denumerability of $`Φ` gives us an enumeration of its atoms.
+We call its first two atoms $`φ` and $`ψ`. After choosing an arbitrary
+instance of a schema, its substitution $`σ` turns these placeholders
 into arbitrary formulas.
 
 ```lean
@@ -1225,11 +1229,11 @@ $$`
 \end{aligned}`
 
 :::details "Solutions"
-In each picture, an arrow from wᵢ to wⱼ means that wⱼ is accessible from wᵢ.The
-second line inside each circle lists which of φ, ψ, and χ are true there;
-∅ means that none of these atoms is true.
+In each picture, an arrow from $`w_i` to $`w_j` means that $`w_j` is accessible
+from $`w_i`. The second line inside each circle lists which of $`φ`, $`ψ`, and
+$`χ` are true there; $`∅` means that none of these atoms is true.
 
-The denumerability of Φ ensures that φ and ψ name distinct atoms.
+The denumerability of $`Φ` ensures that $`φ` and $`ψ` name distinct atoms.
 
 ```lean
 theorem schema_atoms_ne : φ₀ ≠ ψ₀ := by
@@ -1306,8 +1310,8 @@ example : ⊭ˢ (□ₜ(φ →ₜ ψ) →ₜ (□ₜφ →ₜ ◇ₜψ)) := by
   exact hR
 ```
 
-For $`◇φ → □φ`, use a model where w₀ can access both worlds, including
-itself. The atom φ is true at w₁ but false at w₀.
+For $`◇φ → □φ`, use a model where $`w_0` can access both worlds,
+including itself. The atom $`φ` is true at $`w_1` but false at $`w_0`.
 
 ```lean
 private abbrev branchCountermodel (p₀ : Φ) : @Model Φ :=
@@ -1336,9 +1340,9 @@ example : ⊭ˢ (◇ₜφ →ₜ □ₜφ) := by
   exact Fin.zero_ne_one hpFalse.2
 ```
 
-For the disjunction of boxes, use four worlds. The two branches from w₀ make
-different disjuncts fail; the extra successor w₃ of w₂ makes ψ true there but
-φ false.
+For the disjunction of boxes, use four worlds. The two branches from $`w_0`
+make different disjuncts fail; the extra successor $`w_3` of $`w_2` makes
+$`ψ` true there but $`φ` false.
 
 ```lean
 private abbrev fourWorldCountermodel (q₀ : Φ) : @Model Φ :=
@@ -1384,9 +1388,9 @@ example : ⊭ˢ (□ₜ(□ₜφ →ₜ ψ) ∨ₜ □ₜ(□ₜψ →ₜ □ₜ
       exact schema_atoms_ne hpEnd.1
 ```
 
-For $`□(φ ∨ ψ) → (□φ ∨ □ψ)`, use a model in which every world accessible
-from w₀ satisfies at least one of φ and ψ, but neither atom is true at every
-accessible world.
+For $`□(φ ∨ ψ) → (□φ ∨ □ψ)`, use a model in which every world
+accessible from $`w_0` satisfies at least one of $`φ` and $`ψ`, but neither
+atom is true at every accessible world.
 
 ```lean
 private abbrev splitCountermodel (p₀ q₀ : Φ) : @Model Φ :=
@@ -1430,8 +1434,8 @@ example : ⊭ˢ (□ₜ(φ ∨ₜ ψ) →ₜ (□ₜφ ∨ₜ □ₜψ)) := by
       · exact Fin.zero_ne_one htrue.symm
 ```
 
-Finally, use a reflexive one-world model for the Löb schema. The atom φ is
-false at w₀, and the loop records that w₀ is accessible from itself.
+Finally, use a reflexive one-world model for the Löb schema. The atom $`φ` is
+false at $`w_0`, and the loop records that $`w_0` is accessible from itself.
 
 ```lean
 private abbrev reflexiveCountermodel : @Model Φ :=
@@ -1475,7 +1479,8 @@ example : ∀ M : @Model Φ, (M ⊨ᵐ ◇ₜ⊤ₜ) ↔ (M ⊨ᵐˢ (□ₜφ �
 ```
 :::
 
-4) Exhibit a frame that validates □⊥. i.e., prove $`∃ F, F ⊨^\texttt{f} □⊥`.
+4) Exhibit a frame that validates $`□⊥`. i.e., prove
+$`∃ F, F ⊨^\texttt{f} □⊥`.
 :::details "Solution"
 The counterframe is the frame with a single world and no
 accessible worlds, or more generally any frame where
@@ -1633,7 +1638,8 @@ F.R_Star = Relation.ReflTransGen F.R := by
 
 ## Exercises
 
-1) R^1 = R. Show that for any frame F, any world w, and any world v, we have
+1) $`R^1 = R`. Show that for any frame $`F`, any world $`w`, and any world
+$`v`, we have
 $`R^1(w, v) \quad\text{iff}\quad R(w, v)`
 2) if $`R^*(w, v)` holds, then there exists a sequence of worlds
 $`w_0, w_1, \dots, w_n` (with $`w_0 = w` and $`w_n = v`) such that
@@ -1965,7 +1971,7 @@ $$`
 :::details "Solutions"
 Both follow directly from our lemma.
 We can prove both of these by showing that $`F2` is the p-morphic image
-of $`F1` and $`F1` is the $`F1` is the p-morphic image of (ℕ, <).
+of $`F1` and $`F1` is the $`F1` is the p-morphic image of $`(ℕ, <)`.
 We do this by providing an explicit p-morphism.
 
 For the first example, we need to show that $`F_2` is the p-morphic image of $`F_1`.
@@ -1991,8 +1997,8 @@ example : let R {α : Type} (_ _ : α) := True;
     simp [Function.Surjective]
 ```
 
-For the 2nd example, we give n % 2 as the p-morphism from
-ℕ to Fin 2.
+For the 2nd example, we give $`n \bmod 2` as the p-morphism from
+$`ℕ` to $`\operatorname{Fin}(2)`.
 ```lean
 example :
 (⟨ℕ, (· < ·)⟩ ⊨ᶠ φ) → (⟨Fin 2, λ _ _ => True⟩ ⊨ᶠ φ) := by
@@ -2101,8 +2107,9 @@ intersection of all logics containing $`Γ`.
 Given a set of formulae $`Γ ⊆ Fma(Φ)`, the _smallest logic_ containing
 $`Γ` is the intersection of all logics containing $`Γ`.
 
-From this, we note that PL is the smallest logic, and FBA is the largest,
-in the sense that any logic $`Λ` satisfies $`PL ⊆ Λ ⊆ FBA`.
+From this, we note that $`\texttt{PL}` is the smallest logic, and
+$`\texttt{FBA}` is the largest, in the sense that any logic $`Λ` satisfies
+$`\texttt{PL} ⊆ Λ ⊆ \texttt{FBA}`.
 ```lean
 lemma Logic.PL_subset {Φ : Type} [Denumerable Φ]
 (Λ : Set (L Φ)) [i :Logic Λ] : (PL Φ) ⊆ Λ := by
