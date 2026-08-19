@@ -1477,16 +1477,20 @@ example : ∀ M : @Model Φ, (M ⊨ᵐ ◇ₜ⊤ₜ) ↔ (M ⊨ᵐˢ (□ₜφ �
 
 4) Exhibit a frame that validates □⊥. i.e., prove $`∃ F, F ⊨^\texttt{f} □⊥`.
 :::details "Solution"
+The counterframe is the frame with a single world and no
+accessible worlds, or more generally any frame where
+no world has an accessible world.
 ```lean
 example : ∃ F, F ⊨ᶠ (□ₜ⊥ₜ : L Φ) := by
-  sorry
+  exists ⟨Fin 1, fun _ _ => False⟩
+  simp_all only
+  [L.valid_in_frame, L.true_in_model, Model.satisfies, implies_true]
 ```
 :::
 
 ## Properties of Valuation
 
 :::theorem "Model.valuation_agrees"
-
 
 ```lean
 theorem Model.valuation_agrees (M : @Model Φ) (w : M.S) (A : L Φ)
@@ -1510,42 +1514,64 @@ theorem Model.valuation_agrees (M : @Model Φ) (w : M.S) (A : L Φ)
 ```
 :::
 
-5) Show the following. (1) If a formula is a tautology, it holds in any model
-(i.e. it is valid, $`M ⊨ᵐ φ` for all $`M`) . (2) If $`M ⊨ᵐ φ → ψ` and $`M ⊨ᵐ φ`
-then $`M ⊨ᵐ ψ`. (3) if $`M ⊨ᵐ φ` then $`M ⊨ᵐ □φ`.
+5) Show the following:
+* If a formula is a tautology, it holds in any model.
+$$`⊢_\texttt{t} φ → ∀ M, (M ⊨^\texttt{m} φ)`
+* If $`M ⊨^\texttt{m} φ → ψ` and $`M ⊨^\texttt{m} φ`
+then $`M ⊨^\texttt{m} ψ`.
+* if $`M ⊨^\texttt{m} φ` then $`M ⊨^\texttt{m} □φ`.
+:::details "Solution"
 ```lean
 theorem tautology_holds_in_all_models {φ : L Φ} :
-φ.isTautology → ∀ M, (M ⊨ᵐ φ) := by
-  classical
+(⊢ₜ φ) → ∀ M, (M ⊨ᵐ φ) := by
   intro hφ M w
-  let V : QuasiAtomicSubformulaValuation φ := λ B _ _ => M ⊨[w] B
+  let V : QuasiAtomicSubformulaValuation φ :=
+    λ B _ _ => M ⊨[w] B
   have hV := hφ V
   exact (M.valuation_agrees w φ V
     (by intros; rfl)).mp hV
 
-example : ∀ M : @Model Φ, (M ⊨ᵐ (φ →ₜ ψ)) ∧ (M ⊨ᵐ φ) → (M ⊨ᵐ ψ) := by
-  sorry
+example : (M ⊨ᵐ (φ →ₜ ψ)) ∧ (M ⊨ᵐ φ) → (M ⊨ᵐ ψ) := by
+  intro h
+  simp_all only
+  [L.true_in_model, Model.satisfies, implies_true]
 
 example : ∀ M : @Model Φ, (M ⊨ᵐ φ) → (M ⊨ᵐ □ₜφ) := by
-  sorry
+  intro M a
+  simp_all only
+  [L.true_in_model, Model.satisfies, implies_true]
 ```
+:::
 
 6) Show that the above hold for frames as well. i.e.
-(1) If a formula is a tautology, it holds in any frame,
-(2) If $`F ⊨^\texttt{f} φ → ψ` and $`F ⊨^\texttt{f} φ` then $`F ⊨^\texttt{f} ψ`.
-(3) if $`F ⊨^\texttt{f} φ` then $`F ⊨^\texttt{f} □φ`.
-```lean
-example : ∀ F : Frame, (⊨ φ) → (F ⊨ᶠ φ) := by
-  sorry
+* If a formula is a tautology, it holds in any frame
+$$`⊢_\texttt{t} φ → ∀ F, (F ⊨^\texttt{f} φ)`
+* If $`F ⊨^\texttt{f} φ → ψ` and $`F ⊨^\texttt{f} φ`
+then $`F ⊨^\texttt{f} ψ`.
+* if $`F ⊨^\texttt{f} φ` then $`F ⊨^\texttt{f} □φ`.
 
-example : ∀ F : Frame, (F ⊨ᶠ (φ →ₜ ψ)) ∧ (F ⊨ᶠ φ) → (F ⊨ᶠ ψ) := by
-  sorry
+:::details "Solutions"
+The first follows directly from the coresponding
+result for models and the definition of validity in a frame.
+```lean
+theorem tautology_valid_in_all_frames
+{φ : L Φ} : (⊢ₜ φ) → (F ⊨ᶠ φ) := by
+  intro F hφ
+  have H' := tautology_holds_in_all_models F
+  simp_all only [L.isTautology, L.true_in_model, implies_true]
+
+example : (F ⊨ᶠ (φ →ₜ ψ)) ∧ (F ⊨ᶠ φ) → (F ⊨ᶠ ψ) := by
+  intro a
+  simp_all only [L.valid_in_frame, L.true_in_model,
+    Model.satisfies, implies_true]
 
 example : ∀ F : Frame, (F ⊨ᶠ φ) → (F ⊨ᶠ □ₜφ) := by
-  sorry
-
+  intro F a
+  simp_all only [L.valid_in_frame, L.true_in_model,
+    Model.satisfies, implies_true]
 
 ```
+:::
 
 # Ancestral and Descendant Worlds
 
@@ -1577,6 +1603,33 @@ def Frame.R_Star (F : Frame) (w v : F.S) : Prop :=
 ```
 :::
 
+## Properties
+$`R^*` is equivalent to Mathlib's `Relation.ReflTransGen` on `F.R`.
+```lean
+--TODO: Better proof
+theorem Frame.R_Star_eq_reflTransGen (F : Frame) :
+F.R_Star = Relation.ReflTransGen F.R := by
+  ext w v
+  constructor
+  · rintro ⟨n, hn⟩
+    induction n generalizing w with
+    | zero =>
+        simp only [Frame.R_n] at hn
+        subst v
+        exact Relation.ReflTransGen.refl
+    | succ n ih =>
+        simp only [Frame.R_n] at hn
+        rcases hn with h | ⟨u, hwu, huv⟩
+        · exact Relation.ReflTransGen.single h
+        · exact Relation.ReflTransGen.head hwu (ih u huv)
+  · intro h
+    refine Relation.ReflTransGen.head_induction_on h ?_ ?_
+    · exact ⟨0, rfl⟩
+    · intro a u hau _ ih
+      rcases ih with ⟨n, hun⟩
+      exact ⟨n + 1, Or.inr ⟨u, hau, hun⟩⟩
+
+```
 
 ## Exercises
 
@@ -1595,14 +1648,45 @@ relation `Q : ℤ → ℤ → Prop` and show that $`R^* = Q`.
 :::details "Solutions"
 
 ```lean
-theorem Frame.R_n.R_1_eq_R (F : Frame) (w v : F.S) : F.R_n 1 w v ↔ F.R w v := by
+theorem Frame.R_n.R_1_eq_R (F : Frame) (w v : F.S) :
+F.R_n 1 w v ↔ F.R w v := by
   simp only [R_n, exists_eq_right, or_self]
 
 theorem Frame.R_Star.exists_sequence (F : Frame) (w v : F.S) :
 F.R_Star w v ↔ ∃ n : Nat, ∃ (w_seq : Fin (n+1) → F.S),
-  w_seq 0 = w ∧ w_seq ⟨n, by simp⟩ = v ∧
-  ∀ i : Fin n, F.R (w_seq ⟨i.1, by simp⟩) (w_seq ⟨i.1 + 1, by simp⟩) := by
-  sorry
+w_seq 0 = w ∧ w_seq ⟨n, by simp⟩ = v ∧
+∀ i : Fin n, F.R (w_seq ⟨i.1, by simp⟩) (w_seq ⟨i.1 + 1, by simp⟩) := by
+  rw [Frame.R_Star_eq_reflTransGen]
+  constructor
+  · intro h
+    induction h using Relation.ReflTransGen.head_induction_on with
+    | refl =>
+        refine ⟨0, fun _ => v, rfl, rfl, ?_⟩
+        exact fun i => Fin.elim0 i
+    | @head a u hau _ ih =>
+        rcases ih with ⟨n, w_seq, hzero, hlast, hsteps⟩
+        let next : Fin (n + 2) → F.S := Fin.cases a w_seq
+        refine ⟨n + 1, next, by simp [next], ?_, ?_⟩
+        · simpa [next] using hlast
+        · intro i
+          refine Fin.cases ?_ (fun j => ?_) i
+          · change F.R a (w_seq 0)
+            simpa [hzero] using hau
+          · simpa [next] using hsteps j
+  · rintro ⟨n, w_seq, hzero, hlast, hsteps⟩
+    have path_reaches :
+        Relation.ReflTransGen F.R (w_seq 0) (w_seq ⟨n, by simp⟩) := by
+      clear hzero hlast w v
+      induction n with
+      | zero => exact Relation.ReflTransGen.refl
+      | succ n ih =>
+          let tail : Fin (n + 1) → F.S := fun i =>
+            w_seq ⟨i.1 + 1, by omega⟩
+          apply Relation.ReflTransGen.head (hsteps 0)
+          apply ih (w_seq := tail)
+          intro i
+          simpa [tail] using hsteps ⟨i.1 + 1, by omega⟩
+    simpa [hzero, hlast] using path_reaches
 
 @[simp]
 theorem Frame.R_Star.refl (F : Frame) (w : F.S) : F.R_Star w w := by
@@ -1611,9 +1695,9 @@ theorem Frame.R_Star.refl (F : Frame) (w : F.S) : F.R_Star w w := by
 
 theorem Frame.R_Star.trans (F : Frame) (w u v : F.S) :
 F.R_Star w u → F.R_Star u v → F.R_Star w v := by
-  simp
-  intro n H1 m H2
-  sorry
+  intro hwu huv
+  rw [Frame.R_Star_eq_reflTransGen] at hwu huv ⊢
+  exact hwu.trans huv
 ```
 :::
 
@@ -1667,6 +1751,7 @@ def Model.submodel (M : @Model Φ) (w : M.S) : @Model Φ := {
 For any model $`M = (S, R, V)`, any $`w \in S`, and any world $`v \in S_w`
 We have that $`M_w ⊨_v φ` if and only if $`M ⊨_v φ`.
 ```lean
+omit [Denumerable Φ] in
 theorem Model.submodel_lemma
 (M : @Model Φ) {φ : L Φ} {w : M.S} {v : M.S_sub w} :
 (M.submodel w ⊨[v] φ) ↔ M ⊨[v] φ := by
@@ -1699,12 +1784,14 @@ $$`M ⊨^\texttt{m} φ \iff ∀w, M_w ⊨^\texttt{m} φ`
 $$`F ⊨^\texttt{f} φ \iff ∀w, F_w ⊨^\texttt{f} φ`
 ```lean
 
+omit [Denumerable Φ] in
 lemma Model.submodel_satisfies_from_satisfies
 (M : @Model Φ) {φ : L Φ} {w : M.S} :
 (M ⊨ᵐ φ) → (M.submodel w ⊨ᵐ φ) := by
   intro h v
   exact M.submodel_lemma.mpr (h v.1)
 
+omit [Denumerable Φ] in
 lemma Model.satisfies_iff_all_submodel_satisfies
 (M : @Model Φ) {φ : L Φ} :
 (M ⊨ᵐ φ) ↔ ∀w, M.submodel w ⊨ᵐ φ := by
@@ -1717,15 +1804,44 @@ lemma Model.satisfies_iff_all_submodel_satisfies
     have h'' := h' ⟨v, by apply Frame.R_Star.refl⟩
     exact M.submodel_lemma.mp h''
 
+omit [Denumerable Φ] in
 lemma Frame.valid_iff_all_subframe_valid
 (F : Frame) {φ : L Φ} :
 (F ⊨ᶠ φ) ↔ ∀w, F.subframe w ⊨ᶠ φ := by
   simp only [L.valid_in_frame]
   constructor
-  · intro h w M hM
-    sorry
-  . intro h M hM
-    sorry
+  · intro h w V_sub u
+    classical
+    let V : Φ → F.S → Prop := fun p v =>
+      if hv : F.R_Star w v then V_sub p ⟨v, hv⟩ else False
+    let M : @Model Φ := Model.mk F V
+    have hM : M ⊨ᵐ φ := h V
+    have hsub : M.submodel w ⊨ᵐ φ :=
+      M.submodel_satisfies_from_satisfies hM
+    have hsubmodel :
+        M.submodel w = Model.mk (F.subframe w) V_sub := by
+      change Model.mk (F.subframe w) (fun p v => V p v.1) =
+        Model.mk (F.subframe w) V_sub
+      congr 1
+      funext p v
+      apply propext
+      change
+        (if hv : F.R_Star w v.1 then
+          V_sub p ⟨v.1, hv⟩ else False) ↔
+          V_sub p v
+      by_cases hv : F.R_Star w v.1
+      · rw [dif_pos hv]
+        have hv_eq : (⟨v.1, hv⟩ : F.S_sub w) = v :=
+          Subtype.ext rfl
+        rw [hv_eq]
+      · exact (hv v.2).elim
+    rw [hsubmodel] at hsub
+    exact hsub u
+  · intro h V w
+    let M : @Model Φ := Model.mk F V
+    have hsub := h w (fun p v => V p v.1)
+      ⟨w, Frame.R_Star.refl F w⟩
+    exact M.submodel_lemma.mp hsub
 ```
 :::
 
@@ -1764,6 +1880,7 @@ and p-Morphism between them $`f`,
 we have that $$`M_1 ⊨_w φ ↔ M_2 ⊨_{f(w)} φ`
 
 ```lean
+omit [Denumerable Φ]
 theorem pMorphism.satisfies_iff
 {M1 M2 : @Model Φ} {f : M1.S → M2.S} [pMorphism f] {φ : L Φ} {w : M1.S} :
 (M1 ⊨[w] φ) ↔ (M2 ⊨[f w] φ) := by
@@ -1814,16 +1931,30 @@ $$`(F_1 ⊨^\texttt{f} φ) → (F_2 ⊨^\texttt{f} φ)`
 
 ```lean
 -- TODO: rename
-theorem p_morphism_lemma_2 {F1 F2 : Frame} {H : pMorphicImage F1 F2} {φ : L φ}:
-F1 ⊨ᶠ φ → F2 ⊨ᶠ φ :=
-  sorry
+theorem p_morphism_lemma_2
+{F1 F2 : Frame} {H : pMorphicImage F1 F2} {φ : L φ}:
+F1 ⊨ᶠ φ → F2 ⊨ᶠ φ := by
+  intro H2
+  obtain ⟨f, pf, surj⟩ := H
+  simp_all only [L.valid_in_frame, L.true_in_model]
+  intro v w
+  obtain ⟨x, rfl⟩ := surj w
+  let M1 := Model.mk F1 (fun p s => v p (f s))
+  let M2 := Model.mk F2 v
+  let : pMorphism (M1 := M1) (M2 := M2) f :=
+    { topMorphismF := pf
+      c3 := Iff.rfl }
+  change M2 ⊨[f x] φ
+  apply (@pMorphism.satisfies_iff _ M1 M2 f _ φ x).mp
+  exact H2 _ x
+
 ```
 :::
 
 ## Exercises
 
-Given the follwing two frames $`F1 := ({0, 1}, λxy.\texttt{True})` and
-$`F2 := ({0}, λxy.\texttt{True})` show that
+Given the follwing two frames $`F_1 := (\{0, 1\}, R)` and
+$`F_2 := (\{0\}, R)` where $`R` is the universal relation, show that
 $$`
 \begin{aligned}
 (F_1 ⊨^\texttt{f} φ) &→ (F_2 ⊨^\texttt{f} φ) \\
@@ -1834,38 +1965,55 @@ $$`
 :::details "Solutions"
 Both follow directly from our lemma.
 We can prove both of these by showing that $`F2` is the p-morphic image
-of $`F1` and $`F1` is the $`F1` is the p-morphic image of (ℕ, <). We do this
-by providing an explicit p-morphism.
+of $`F1` and $`F1` is the $`F1` is the p-morphic image of (ℕ, <).
+We do this by providing an explicit p-morphism.
+
+For the first example, we need to show that $`F_2` is the p-morphic image of $`F_1`.
+We do this by providing an explicit surjective p-morphism, the function
+mapping worlds 0, 1 in $`F_1` to the single world 0 in $`F_2`,
+and then showing that it satisfies the conditions of a p-morphism.
 ```lean
 --TODO: I speed ran this proof and it needs cleanup
-example : (⟨Fin 2, λ _ _ => True⟩ ⊨ᶠ φ) → (⟨Fin 1, λ _ _ => True⟩ ⊨ᶠ φ) := by
+example : let R {α : Type} (_ _ : α) := True;
+(⟨Fin 2, R⟩ ⊨ᶠ φ) → (⟨Fin 1, R⟩ ⊨ᶠ φ) := by
   apply p_morphism_lemma_2
   exists (λ _ => 0)
   constructor
-  constructor
-  simp;
-  intro s u a
-  simp_all only [true_and, exists_const]
-  ext : 1
-  simp_all only [Fin.val_eq_zero]
-  simp [Function.Surjective]
-
-example : (⟨ℕ, (· < ·)⟩ ⊨ᶠ φ) → (⟨Fin 2, λ _ _ => True⟩ ⊨ᶠ φ) := by
-  apply p_morphism_lemma_2
-  -- Bad selection of F
-  exists (λ n => match n with | 0 => 0 | n + 1 => 2)
-  constructor
   . case left =>
     constructor
-    . case c1 =>
-      intro s t a
-      simp_all only
-    . case c2 => sorry
-  . case right =>
+    . case c1 => simp;
+    . case c2 =>
+      intro s u a
+      simp only [true_and, exists_const]
+      ext
+      simp only [Fin.val_eq_zero]
+  . case right => --Prove surjectivity of the p-morphism
     simp [Function.Surjective]
-    constructor
-    . case left => exists 0
-    . case right => sorry
+```
+
+For the 2nd example, we give n % 2 as the p-morphism from
+ℕ to Fin 2.
+```lean
+example :
+(⟨ℕ, (· < ·)⟩ ⊨ᶠ φ) → (⟨Fin 2, λ _ _ => True⟩ ⊨ᶠ φ) := by
+  apply p_morphism_lemma_2
+  let f : ℕ → Fin 2 := fun n =>
+    ⟨n % 2, Nat.mod_lt n (by omega)⟩
+  refine ⟨f, ?_, ?_⟩
+  · constructor
+    · simp only [implies_true]
+    · intro s u _
+      fin_cases u
+      · refine ⟨2 * (s + 1), by omega, ?_⟩
+        apply Fin.ext
+        simp [f]
+      · refine ⟨2 * (s + 1) + 1, by omega, ?_⟩
+        apply Fin.ext
+        simp [f]
+  · intro u
+    fin_cases u
+    · exact ⟨0, by simp [f]⟩
+    · exact ⟨1, by simp [f]⟩
 ```
 :::
 
@@ -1956,7 +2104,8 @@ $`Γ`$ is the intersection of all logics containing $`Γ`$.
 From this, we note that PL is the smallest logic, and FBA is the largest,
 in the sense that any logic $`Λ` satisfies $`PL ⊆ Λ ⊆ FBA`.
 ```lean
-lemma Logic.PL_subset (Λ : Set (L Φ)) [Logic Λ] : (PL Φ) ⊆ Λ := by
+lemma Logic.PL_subset {Φ : Type} [Denumerable Φ]
+(Λ : Set (L Φ)) [i :Logic Λ] : (PL Φ) ⊆ Λ := by
   sorry
 
 ```
