@@ -36,7 +36,7 @@ subsitution instance of a propositional tautology" is written:
 $$`⊢_\texttt{t} φ ↔ ∃ ψ, ⊢_\texttt{p} ψ ∧ φ ≼_\texttt{s} ψ`
 Where $`⊢_\texttt{t}` denotes being a tautology,
 and $`⊢_\texttt{p}` denotes being a propositional tautology,
-and while $`φ ≼_\texttt{s} ψ` denotes that $`φ`$ is a substitution
+and while $`φ ≼_\texttt{s} ψ` denotes that $`φ` is a substitution
 instance of $`ψ`.
 
 We keep our notation explicit. In most texts readers will be familiar with "$`⊨`"
