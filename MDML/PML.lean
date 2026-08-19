@@ -10,6 +10,13 @@ set_option pp.rawOnError true
 
 #doc (Manual) "Propositional Modal Logic" =>
 
+In this section, we cover _Propositional Modal Logic_ (PML), which extends
+classical propositional logic with modal operators such as
+$`\Box` and possibility $`\Diamond`, which allow us to reason about modals
+such as necessity and possibility, knowledge, belief, time, and other modalities.
+
+
+
 # The Language of Propositional Modal Formula
 
 :::definition "Modal formulas"
@@ -186,6 +193,8 @@ formulae, which allows us to print formulae in the lean interpreter.
 
 # Subformulae, Substitution, and Schemata
 
+## Subformula
+
 :::definition "Subformulae"
 The finite set of subformulae of a formula $`A` is defined inductively as:
 ```lean
@@ -210,9 +219,13 @@ $`\{□(p → q), p → q, p, q\}`.
 #eval S[ □ₜ("p" →ₜ "q") ]
 ```
 
-:::details "Properties of Subformulae"
-A formula is always a subformula of itself.
+## Properties of Subformulae
+
+:::theorem "reflexivity and transitivity"
+A formula $`φ` is always a subformula of itself.
 i.e. membership of subformulae is reflexive.
+$$`φ ∈ S[φ]`
+
 ```lean
 @[simp]
 theorem L.subformulae_mem_refl (A : L Φ) : A ∈ S[A] := by
@@ -226,7 +239,9 @@ theorem L.subformulae_mem_refl (A : L Φ) : A ∈ S[A] := by
     simp only [L.subformulae, Finset.singleton_union, Finset.mem_insert,
     true_or]
 ```
+
 Membership of subformulae is transitive.
+$$`φ ∈ S[ψ] → ψ ∈ S[χ] → φ ∈ S[χ]`$$
 ```lean
 @[simp]
 theorem L.subformulae_mem_trans (A B C: L Φ) :
@@ -578,7 +593,8 @@ A Quasi-atomic subformula valuation is a valuation function that assigns
 true or false to each quasi-atomic subformula of a formula.
 
 ```lean
-abbrev QuasiAtomicSubformulaValuation {Φ : Type} [DecidableEq Φ] (φ : L Φ) :=
+abbrev QuasiAtomicSubformulaValuation {Φ : Type}
+[DecidableEq Φ] (φ : L Φ) :=
   (ψ : L Φ) → ψ.isQuasiAtomic → ψ ∈ S[φ] → Prop
 
 ```
@@ -634,12 +650,13 @@ notation "⟦" φ "⟧" V => LiftedQuasiAtomicValuation φ V
 
 :::definition "Tautologies"
 We define the notion of tautology in terms of quasi-atomic subformulae.
-We say a formula φ is a tautology if its lifted valuation is true for
-every valuation of its quasi-atomic subformula. This idea naturally
-coresponds to the notion of tautology in propositional logic, where a formula
-is a tautology if it is true under every assignment of truth values to
-its propositional variables, except now we consider quasi-atomic subformulae
-instead.
+We say a formula φ is a tautology, written $`⊢ₜ φ` if its lifted valuation
+is true for every valuation of its quasi-atomic subformula.
+$$` ⊢_\texttt{t} φ := ∀ V, ⟦φ⟧ V`
+This idea naturally coresponds to the notion of tautology in propositional
+logic, where a formula is a tautology if it is true under every assignment of
+truth values to its propositional variables, except now we consider
+quasi-atomic subformulae instead.
 ```lean
 @[simp]
 def L.isTautology {Φ : Type} [DecidableEq Φ] (φ : L Φ) : Prop :=
@@ -687,7 +704,10 @@ def L.boxFree {Φ : Type} : L Φ → Prop
 | .bot => True
 | .imp φ ψ => φ.boxFree ∧ ψ.boxFree
 | .box _ => False
-
+```
+A formula $`φ` that is both a tautology $`⊢_\texttt{t} φ` and box-free is
+called a propositional tautology, denoted $`⊢_\texttt{p} φ`.
+```lean
 @[simp]
 def L.isPropTautology {Φ : Type} [DecidableEq Φ] (φ : L Φ) : Prop :=
   (⊢ₜ φ) ∧ φ.boxFree
@@ -703,7 +723,7 @@ that any tautology is a substitution instance of a box-free tautology.
 Any tautology is a subsitution instance of
 a "box-free" tautology, i.e. a tautology in propositional logic.
 
-$$`⊢ₜ φ ↔ ∃ ψ, ⊢ₚ ψ ∧ φ ≼ₛ ψ`
+$$`⊢_\texttt{t} φ ↔ ∃ ψ, ⊢_\texttt{p} ψ ∧ φ ≼_\texttt{s} ψ`
 
 _Proof._ The proof replaces every quasi-atomic part of $`φ`—each atom and each boxed
 subformula—by a fresh atomic name. Because $`Φ` is denumerable, formulae can be
@@ -964,7 +984,7 @@ notation M " ⊭ᵐ " φ => ¬ L.true_in_model M φ
 ```
 
 A formula φ is valid in a frame F if it is true in every model based on F.
-$$`F \vDash^f φ := ∀ V, (F, V) \vDash^m φ`
+$$`F \vDash^\texttt{f} φ := ∀ V, (F, V) \vDash^\texttt{m} φ`
 ```lean
 @[simp]
 def L.valid_in_frame (F : Frame) (φ : L Φ) : Prop :=
@@ -975,7 +995,7 @@ notation F " ⊭ᶠ " φ => ¬ L.valid_in_frame F φ
 ```
 
 A formula φ is valid in a class of frames C if it is valid in every frame in C.
-$$`C \vDash^c φ := ∀ F ∈ C, F \vDash^f φ`
+$$`C \vDash^\texttt{c} φ := ∀ F ∈ C, F \vDash^\texttt{f} φ`
 In Lean we represent a class as a set of frames.
 ```lean
 @[simp]
@@ -1006,11 +1026,14 @@ theorem L.valid_iff_valid_in_class (φ : L Φ) :
     simp_all only
 ```
 
-
-We have analogous definitions for truth and validity over schemas.
+We have analogous definitions for truth and validity over schemas
+($`M ⊨^\texttt{ms} φ`, $`F ⊨^\texttt{fs} φ`, $`C ⊨^\texttt{cs} φ`)
 A schema is true in a model if every instance of the schema is
-true in the model. We define these such that the
-`[]ₛ` notation is implicity when using the `⊨ˢ` notations.
+true in the model.
+
+In Lean, we define these such that schema versions are implicit,
+meaning that we do not pass a schema but a formula representing the schema,
+and we then quantify over all instances of the schema formula.
 
 ```lean
 @[simp]
@@ -1452,7 +1475,7 @@ example : ∀ M : @Model Φ, (M ⊨ᵐ ◇ₜ⊤ₜ) ↔ (M ⊨ᵐˢ (□ₜφ �
 ```
 :::
 
-4) Exhibit a frame that validates □⊥. i.e., prove $`∃ F, F ⊨ᶠ □⊥`.
+4) Exhibit a frame that validates □⊥. i.e., prove $`∃ F, F ⊨^\texttt{f} □⊥`.
 :::details "Solution"
 ```lean
 example : ∃ F, F ⊨ᶠ (□ₜ⊥ₜ : L Φ) := by
@@ -1509,8 +1532,8 @@ example : ∀ M : @Model Φ, (M ⊨ᵐ φ) → (M ⊨ᵐ □ₜφ) := by
 
 6) Show that the above hold for frames as well. i.e.
 (1) If a formula is a tautology, it holds in any frame,
-(2) If $`F ⊨ᶠ φ → ψ` and $`F ⊨ᶠ φ` then $`F ⊨ᶠ ψ`.
-(3) if $`F ⊨ᶠ φ` then $`F ⊨ᶠ □φ`.
+(2) If $`F ⊨^\texttt{f} φ → ψ` and $`F ⊨^\texttt{f} φ` then $`F ⊨^\texttt{f} ψ`.
+(3) if $`F ⊨^\texttt{f} φ` then $`F ⊨^\texttt{f} □φ`.
 ```lean
 example : ∀ F : Frame, (⊨ φ) → (F ⊨ᶠ φ) := by
   sorry
@@ -1607,10 +1630,10 @@ restriction of the accessibility relation and valuation to these worlds.
 :::definition "Generated Submodel"
 Given a model $`M = (S, R, V)` and a world $`w \in S`, we define the _submodel
  of $`M` generated by $`w`_ as the model $`M_w = (S_w, R_w, V_w)` where
-- $`S_w = {v ∈ S | R^*(w, v)}` is the set of worlds accessible from $`w`
+- $`S_w := \{v ∈ S | R^*(w, v)\}` is the set of worlds accessible from $`w`
 (including $`w` itself),
-- $`R_w = R \cap (S_w \times S_w)` is the restriction of $`R` to $`S_w`,
-- $`V_w(p) = V(p) \cap S_w` for each propositional variable $`p`.
+- $`R_w := R \cap (S_w \times S_w)` is the restriction of $`R` to $`S_w`,
+- $`V_w(p) := V(p) \cap S_w` for each propositional variable $`p`.
 
 ```lean
 
@@ -1669,11 +1692,11 @@ theorem Model.submodel_lemma
 
 From this we get three corolaries:
 1) If a formula is true in a model, then it is true in any submodel.
-$$`M ⊨ᵐ φ \implies M_w ⊨ᵐ φ`
+$$`M ⊨^\texttt{m} φ \implies M_w ⊨^\texttt{m} φ`
 2) A formula is true in a model iff it is true in all of its submodels.
-$$`M ⊨ᵐ φ \iff ∀w, M_w ⊨ᵐ φ`
+$$`M ⊨^\texttt{m} φ \iff ∀w, M_w ⊨^\texttt{m} φ`
 3) A formula is valid in a frame iff it is valid in all of its subframes.
-$$`F ⊨ᶠ φ \iff ∀w, F_w ⊨ᶠ φ`
+$$`F ⊨^\texttt{f} φ \iff ∀w, F_w ⊨^\texttt{f} φ`
 ```lean
 
 lemma Model.submodel_satisfies_from_satisfies
@@ -1787,7 +1810,7 @@ This then leads us to the following
 :::theorem "p-Morphism Lemma 2"
 
 If $`F_2` is a p-morphic image of $`F_1` then for any formula $`f`
-$$`(F_1 ⊨ᶠ φ) → (F_2 ⊨ᶠ φ)`
+$$`(F_1 ⊨^\texttt{f} φ) → (F_2 ⊨^\texttt{f} φ)`
 
 ```lean
 -- TODO: rename
@@ -1803,8 +1826,8 @@ Given the follwing two frames $`F1 := ({0, 1}, λxy.\texttt{True})` and
 $`F2 := ({0}, λxy.\texttt{True})` show that
 $$`
 \begin{aligned}
-(F_1 ⊨ᶠ φ) &→ (F_2 ⊨ᶠ φ) \\
-((ℕ, <) ⊨ᶠ φ) &→ (F_1 ⊨ᶠ φ) \\
+(F_1 ⊨^\texttt{f} φ) &→ (F_2 ⊨^\texttt{f} φ) \\
+((ℕ, <) ⊨^\texttt{f} φ) &→ (F_1 ⊨^\texttt{f} φ) \\
 \end{aligned}
 `
 
@@ -1869,7 +1892,7 @@ class Logic [Denumerable Φ] (Λ : Set (L Φ)) : Prop where
 Some examples of logics are
 1) The set of all tautologies, which we call $`PL`.
 2) For any class of frames $`C`, the set of all formulae valid in
-   all frames in $`C` i.e the set $`\{ φ | ∀ F ∈ C, F ⊨ᶠ φ \}`
+   all frames in $`C` i.e the set $`\{ φ | ∀ F ∈ C, F ⊨^\texttt{f} φ \}`
 3) The set of all formulae $`Fma(Φ)` itself.
 4) The intersection of any collection of logics $`\{Λ_i | i ∈ I\}`.
   $$`\bigcap_{i ∈ I} Λ_i`
